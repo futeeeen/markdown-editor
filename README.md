@@ -26,22 +26,44 @@
 * **Rolling Action Queue**: Keeps track of the **last 3 replacements** (both *Replace* and *Replace All*).
 * **Tab-Aware Multi-Tab Rollback**: Undo transactions automatically switch to the correct tab and revert files to their exact pre-replacement state chronologically, preserving timeline integrity.
 
-### 🧮 3. High-Fidelity Offline LaTeX Equations (KaTeX)
+### 📊 3. Technical Diagrams & Flowcharts (Mermaid.js)
+* **Diagrams-as-Code**: Render rich, visual flowcharts, sequence diagrams, mindmaps, and Gantt charts inside standard markdown code blocks.
+* **100% Offline SVG Compilation**: All diagram layouts are processed locally using the integrated offline UMD library with zero external CDN script calls.
+* **Dynamic Theme Adaptation**: Diagram styles automatically adapt to match your active editor theme (e.g. Nordic Light renders crisp default themes, while dark themes render gorgeous glowing neon lines).
+
+<p align="center">
+  <img src="assets/mermaid-flowchart.png" width="70%" alt="MarkdownPro - Mermaid Flowchart Rendering" />
+</p>
+
+### 🧮 4. High-Fidelity Offline LaTeX Equations (KaTeX)
 * **Mathematical Symbols Rendering**: Elegant mathematical equations rendering using KaTeX.
 * **Inline & Block Math**: Supports standard `$inline math$` and Centered `$$block math$$` equations.
 * **100% Offline Capability**: Both JS parsers and LaTeX fonts load directly from the local directory with zero external network requests.
 * **Zero Conflicts**: LaTeX blocks are parsed prior to Markdown compilation, completely avoiding conflicts with Markdown characters like `_` (italics) or `\\` (escapes).
 
-### 🎨 4. Theme-Aware Full-Bleed PDF & HTML Exporting
+<p align="center">
+  <img src="assets/latex-fourier.png" width="45%" alt="MarkdownPro - Fourier Transform" />
+  <img src="assets/latex-distribution.png" width="45%" alt="MarkdownPro - Standard Normal Distribution" />
+</p>
+
+### 🔔 5. Active File Watcher & External Reload Alert
+* **Automated fs.watch Lifecycles**: Standard file watchers automatically bind to opened files and unbind cleanly when tabs are closed or saved, preventing system leaks.
+* **Debounced Self-Saves**: Logs the file's `mtimeMs` on internal save to ignore change events within `1000ms`, eliminating false reloading triggers.
+* **Interrupt-Free Background Tab Deferred Reload**: 
+  * If the active file is updated externally, a custom glassmorphic warning modal prompts you instantly.
+  * If a background tab is updated, the prompt is deferred until you actually click/switch to focus that tab, keeping your writing focus uncompromised.
+* **Keep Local vs. Reload**: Restores latest contents on "Reload" or safely flags the local tab dirty on "Keep Copy" to prevent accidental data overwrites.
+
+### 🎨 6. Theme-Aware Full-Bleed PDF & HTML Exporting
 * **Dynamic Style Extraction**: Clicking "HTML" or "PDF" uses `getComputedStyle` to read all active theme custom variables.
 * **Edge-to-Edge Margins Fix**: Background color propagation applies directly to the `html` element to ensure both exported HTML webpages and high-fidelity PDF documents extend background colors edge-to-edge covering the print margins, completely eliminating the white margins mismatch.
 
-### 💾 5. Notepad++ Inspired Multi-Tab System
+### 💾 7. Notepad++ Inspired Multi-Tab System
 * **Draft Caching**: Manage multiple documents in separate tabs without being forced to save existing drafts first.
 * **Unsaved Changes Dot**: The title bar and tabs feature a red indicator showing dirty files.
 * **Exit Guard Sequence**: Closing the application or tabs automatically queues unsaved files and prompts you to Save, Discard, or Cancel.
 
-### 🛠️ 6. Advanced Writer Utilities
+### 🛠️ 8. Advanced Writer Utilities
 * **Responsive Scroll Sync**: Perfect scroll-sync algorithm matches editor scroll height with live preview positioning seamlessly.
 * **Outline (TOC) Sidebar**: Left sidebar parses headers (`#` to `####`) in real-time. Clicking any outline heading scrolls both panes instantly.
   

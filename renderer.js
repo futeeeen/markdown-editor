@@ -128,6 +128,42 @@ greetUser("Creative Writer");
 
 ---
 
+## 📊 Technical Diagrams & Flowcharts (Mermaid.js)
+
+MarkdownPro has built-in high-performance **Mermaid.js** rendering support. You can easily draw flowcharts, sequence diagrams, mindmaps, and Gantt charts:
+
+\`\`\`mermaid
+graph TD
+    Start([Start Writing]) --> Markdown[Write Markdown & Math]
+    Markdown --> LivePreview{Live Preview Engine}
+    LivePreview -- Math rendering --> KaTeX[Offline KaTeX CSS]
+    LivePreview -- Diagram compile --> Mermaid[Mermaid.js SVG]
+    KaTeX --> Output[Premium PDF & HTML Export]
+    Mermaid --> Output
+    Output --> Success([Aesthetic Report Completed!])
+    
+    style Start fill:#a78bfa,stroke:#7c3aed,stroke-width:2px,color:#fff
+    style Success fill:#34d399,stroke:#059669,stroke-width:2px,color:#fff
+    style LivePreview fill:#f472b6,stroke:#db2777,stroke-width:2px,color:#fff
+\`\`\`
+
+---
+
+## 🧮 Advanced LaTeX Mathematical Formula Rendering (KaTeX)
+
+MarkdownPro is equipped with a blazingly fast, fully offline **KaTeX** math engine. You can write complex scientific and academic equations seamlessly:
+
+- **Inline Equations**: Simply wrap your formula in a single dollar sign, such as Euler's elegant identity: $e^{i\\pi} + 1 = 0$, or the classic quadratic equation solutions: $x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$.
+- **Block Equations**: Wrap equations in double dollar signs to center and emphasize them on their own lines, for example, the **Fourier Transform**:
+
+$$\\hat{f}(\\xi) = \\int_{-\\infty}^{\\infty} f(x)\\,e^{-2\\pi i x \\xi}\\,dx$$
+
+Or the **Standard Normal Distribution** probability density function:
+
+$$p(x) = \\frac{1}{\\sigma\\sqrt{2\\pi}} e^{-\\frac{1}{2}\\left(\\frac{x-\\mu}{\\sigma}\\right)^2}$$
+
+---
+
 ## 📄 Formats & Exporting
 
 When your writing is complete, you can:
@@ -158,6 +194,10 @@ When your writing is complete, you can:
     
     if (active) {
       switchTab(tabId);
+    }
+    
+    if (filePath) {
+      window.api.watchFile(filePath);
     }
     
     return newTabObj;
@@ -206,6 +246,14 @@ When your writing is complete, you can:
     // 5. Update Tab UI selection state
     renderTabs();
     updateCursorPos();
+
+    // 6. Check if this newly active tab needs reload due to external modifications!
+    if (nextTab.needsReload) {
+      nextTab.needsReload = false; // Reset first
+      setTimeout(() => {
+        showReloadConfirmModal(nextTab);
+      }, 100); // Tiny delay to let rendering sync completely
+    }
   }
 
   function closeTab(tabId, e) {
@@ -240,6 +288,11 @@ When your writing is complete, you can:
     const tabIndex = tabs.findIndex(t => t.id === tabId);
     if (tabIndex === -1) return;
     
+    const targetTab = tabs[tabIndex];
+    if (targetTab.filePath) {
+      window.api.unwatchFile(targetTab.filePath);
+    }
+
     tabs.splice(tabIndex, 1);
     
     // If all tabs are closed, create a default blank one
@@ -359,6 +412,15 @@ When your writing is complete, you can:
     
     // 5. Update Tab UI Indicators (dirty status changes)
     renderTabs();
+
+    // 6. Initialize and render Mermaid diagrams
+    if (window.mermaid) {
+      try {
+        window.mermaid.init(undefined, '.mermaid');
+      } catch (err) {
+        console.error('Mermaid render failed:', err);
+      }
+    }
 
     if (window.lucide) {
       window.lucide.createIcons();
@@ -691,6 +753,28 @@ When your writing is complete, you can:
     });
   });
 
+  // --- Mermaid.js Integration & Theme Configuration ---
+  function initMermaid(themeClass) {
+    if (!window.mermaid) return;
+
+    let mermaidTheme = 'dark';
+    if (themeClass === 'theme-nordic-light') {
+      mermaidTheme = 'default';
+    } else if (themeClass === 'theme-forest') {
+      mermaidTheme = 'forest';
+    }
+
+    window.mermaid.initialize({
+      startOnLoad: false,
+      theme: mermaidTheme,
+      securityLevel: 'loose',
+      flowchart: {
+        useMaxWidth: true,
+        htmlLabels: true
+      }
+    });
+  }
+
   function setThemeClass(themeClass) {
     document.body.className = document.body.className.replace(/\btheme-\S+/g, '');
     document.body.classList.add(themeClass);
@@ -715,12 +799,18 @@ When your writing is complete, you can:
     if (window.lucide) window.lucide.createIcons();
 
     localStorage.setItem('markdownpro-theme', themeClass);
+
+    // Initialize/re-initialize Mermaid with the selected theme!
+    initMermaid(themeClass);
+
+    // If tabs are already loaded, trigger a live preview refresh to update the diagrams visually
+    if (tabs.length > 0) {
+      updatePreviewDirect();
+    }
   }
 
-  const cachedTheme = localStorage.getItem('markdownpro-theme');
-  if (cachedTheme) {
-    setThemeClass(cachedTheme);
-  }
+  const cachedTheme = localStorage.getItem('markdownpro-theme') || 'theme-aether-dark';
+  setThemeClass(cachedTheme);
 
   // --- Safe Dialogue and Print Functions (Try-Catch Alerts) ---
 
@@ -779,6 +869,10 @@ When your writing is complete, you can:
       const filePath = await window.api.showSaveDialog(defaultName);
       
       if (filePath) {
+        if (currentTab.filePath) {
+          window.api.unwatchFile(currentTab.filePath);
+        }
+
         const success = await window.api.writeFile(filePath, currentTab.content);
         if (success) {
           const basename = filePath.substring(filePath.lastIndexOf('\\') + 1);
@@ -787,6 +881,8 @@ When your writing is complete, you can:
           currentTab.lastSavedContent = currentTab.content;
           currentTab.isDirty = false;
           
+          window.api.watchFile(filePath);
+
           renderTabs();
           updateHeaderAndStatus();
         }
@@ -1069,7 +1165,13 @@ When your writing is complete, you can:
       closingTabsQueue.shift();
       // Remove this tab from memory
       const index = tabs.findIndex(t => t.id === nextUnsavedTab.id);
-      if (index !== -1) tabs.splice(index, 1);
+      if (index !== -1) {
+        const removed = tabs[index];
+        if (removed.filePath) {
+          window.api.unwatchFile(removed.filePath);
+        }
+        tabs.splice(index, 1);
+      }
       
       // Recurse to next queue item
       processNextClosingQueueItem();
@@ -1097,6 +1199,67 @@ When your writing is complete, you can:
     }).catch(error => {
       alert("Error opening clicked file:\n" + error.message);
     });
+  });
+
+  // --- External File Modification Modal & Event Listener ---
+  function showReloadConfirmModal(tab) {
+    if (tab.isReloadPromptActive) return;
+    tab.isReloadPromptActive = true;
+
+    const reloadConfirmModal = document.getElementById('reload-confirm-modal');
+    const reloadModalFilename = document.getElementById('reload-modal-filename');
+    const reloadConfirmBtn = document.getElementById('reload-modal-confirm-btn');
+    const reloadCancelBtn = document.getElementById('reload-modal-cancel-btn');
+
+    reloadModalFilename.innerText = tab.fileName;
+    reloadConfirmModal.classList.remove('hidden');
+
+    const cleanUp = () => {
+      reloadConfirmModal.classList.add('hidden');
+      tab.isReloadPromptActive = false;
+      reloadConfirmBtn.onclick = null;
+      reloadCancelBtn.onclick = null;
+    };
+
+    reloadConfirmBtn.onclick = async () => {
+      try {
+        const newContent = await window.api.readFile(tab.filePath);
+        tab.content = newContent;
+        tab.lastSavedContent = newContent;
+        tab.isDirty = false;
+        
+        if (activeTabId === tab.id) {
+          editor.value = newContent;
+          updatePreviewDirect();
+          updateHeaderAndStatus();
+        } else {
+          renderTabs();
+        }
+      } catch (error) {
+        alert("Error reloading file:\n" + error.message);
+      } finally {
+        cleanUp();
+      }
+    };
+
+    reloadCancelBtn.onclick = () => {
+      // Keep Local Copy: set tab dirty to alert on close/quit
+      tab.isDirty = true;
+      renderTabs();
+      cleanUp();
+    };
+  }
+
+  // Subscribe external file modifications from IPC
+  window.api.onFileModifiedExternally((filePath) => {
+    const matchedTab = tabs.find(t => t.filePath === filePath);
+    if (matchedTab) {
+      if (activeTabId === matchedTab.id) {
+        showReloadConfirmModal(matchedTab);
+      } else {
+        matchedTab.needsReload = true;
+      }
+    }
   });
 
   // --- Search & Replace Floating & Draggable Utility ---

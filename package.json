@@ -20,7 +20,8 @@
   "dependencies": {
     "highlight.js": "^11.8.0",
     "katex": "^0.17.0",
-    "marked": "^9.0.0"
+    "marked": "^9.0.0",
+    "mermaid": "^9.4.3"
   },
   "devDependencies": {
     "electron": "^25.3.0",

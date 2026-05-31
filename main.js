@@ -286,9 +286,17 @@ ipcMain.handle('read-file', async (event, filePath) => {
   }
 });
 
+const lastSavedMtimes = new Map(); // filePath -> mtimeMs
+
 ipcMain.handle('write-file', async (event, filePath, content) => {
   try {
     fs.writeFileSync(filePath, content, 'utf-8');
+    try {
+      const stats = fs.statSync(filePath);
+      lastSavedMtimes.set(filePath, stats.mtimeMs);
+    } catch (e) {
+      console.error('Failed to log saved mtime:', e);
+    }
     return true;
   } catch (error) {
     console.error(`Failed to write file ${filePath}:`, error);
@@ -528,4 +536,54 @@ ipcMain.handle('export-pdf', async (event, htmlContent, suggestedPath, themeClas
     } catch (e) {}
     throw error;
   }
+});
+
+// --- Active File Watching & Change Tracking System ---
+const activeWatchers = new Map(); // filePath -> fs.FSWatcher
+
+function startWatchingFile(filePath) {
+  if (activeWatchers.has(filePath)) return;
+  
+  try {
+    const watcher = fs.watch(filePath, (eventType) => {
+      if (eventType === 'change') {
+        try {
+          if (!fs.existsSync(filePath)) return;
+          const stats = fs.statSync(filePath);
+          const lastSavedMtime = lastSavedMtimes.get(filePath);
+          
+          // Debounce/ignore our own application saves (using 1000ms threshold for safety)
+          if (lastSavedMtime && Math.abs(stats.mtimeMs - lastSavedMtime) < 1000) {
+            return;
+          }
+          
+          if (mainWindow) {
+            mainWindow.webContents.send('file-modified-externally', filePath);
+          }
+        } catch (e) {
+          console.error('Error checking watched file stats:', e);
+        }
+      }
+    });
+    
+    activeWatchers.set(filePath, watcher);
+  } catch (err) {
+    console.error(`Failed to watch file ${filePath}:`, err);
+  }
+}
+
+function stopWatchingFile(filePath) {
+  const watcher = activeWatchers.get(filePath);
+  if (watcher) {
+    watcher.close();
+    activeWatchers.delete(filePath);
+  }
+}
+
+ipcMain.on('watch-file', (event, filePath) => {
+  startWatchingFile(filePath);
+});
+
+ipcMain.on('unwatch-file', (event, filePath) => {
+  stopWatchingFile(filePath);
 });

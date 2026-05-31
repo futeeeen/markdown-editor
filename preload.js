@@ -2,10 +2,22 @@ const { contextBridge, ipcRenderer } = require('electron');
 const { marked } = require('marked');
 const hljs = require('highlight.js');
 
+const renderer = new marked.Renderer();
+const originalCodeRenderer = renderer.code;
+renderer.code = function(code, lang, escaped) {
+  if (lang === 'mermaid') {
+    return `<div class="mermaid">${code}</div>`;
+  }
+  return originalCodeRenderer.call(this, code, lang, escaped);
+};
+
 // Configure marked with highlight.js syntax highlighting
 marked.setOptions({
-  renderer: new marked.Renderer(),
+  renderer: renderer,
   highlight: function(code, lang) {
+    if (lang === 'mermaid') {
+      return code;
+    }
     const language = hljs.getLanguage(lang) ? lang : 'plaintext';
     return hljs.highlight(code, { language }).value;
   },
@@ -77,6 +89,13 @@ contextBridge.exposeInMainWorld('api', {
   showSaveDialog: (suggestedPath) => ipcRenderer.invoke('show-save-dialog', suggestedPath),
   getArgvFile: () => ipcRenderer.invoke('get-argv-file'),
   exportPdf: (htmlContent, suggestedPath, themeClass, themeStyles) => ipcRenderer.invoke('export-pdf', htmlContent, suggestedPath, themeClass, themeStyles),
+  
+  // File watching bridge
+  watchFile: (filePath) => ipcRenderer.send('watch-file', filePath),
+  unwatchFile: (filePath) => ipcRenderer.send('unwatch-file', filePath),
+  onFileModifiedExternally: (callback) => {
+    ipcRenderer.on('file-modified-externally', (event, filePath) => callback(filePath));
+  },
   
   // Application Exit Controls
   forceClose: () => ipcRenderer.send('force-close'),

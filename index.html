@@ -332,6 +332,28 @@ console.log('hi');
     </div>
   </div>
 
+  <!-- File Modified Externally Reload Prompt Modal -->
+  <div id="reload-confirm-modal" class="modal-overlay hidden">
+    <div class="modal-box glass-box animate-scale-up">
+      <div class="modal-header header-warning">
+        <div class="modal-title">
+          <i data-lucide="info" class="warning-icon"></i>
+          <span>File Updated Externally</span>
+        </div>
+      </div>
+      <div class="modal-body">
+        <p>The file <strong id="reload-modal-filename">document.md</strong> has been updated externally by another application. Would you like to reload it? All unsaved edits in MarkdownPro will be overwritten.</p>
+      </div>
+      <div class="modal-footer">
+        <button id="reload-modal-cancel-btn" class="modal-btn secondary">Keep Local Copy</button>
+        <button id="reload-modal-confirm-btn" class="modal-btn primary">Reload File</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mermaid.js for Diagrams Rendering -->
+  <script src="node_modules/mermaid/dist/mermaid.min.js"></script>
+
   <!-- Main Renderer Script -->
   <script src="renderer.js"></script>
 </body>
