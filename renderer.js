@@ -1585,10 +1585,14 @@ When your writing is complete, you can:
     const argvFile = await window.api.getArgvFile();
     if (argvFile) {
       const basename = argvFile.filePath.substring(argvFile.filePath.lastIndexOf('\\') + 1);
-      createNewTab(argvFile.filePath, basename, argvFile.content, true);
+      setTimeout(() => {
+        createNewTab(argvFile.filePath, basename, argvFile.content, true);
+      }, 50);
     } else {
-      // Load default playground active tab
-      createNewTab(null, 'untitled.md', welcomeMarkdown, true);
+      // Load default playground active tab with a slight delay to allow window to show instantly!
+      setTimeout(() => {
+        createNewTab(null, 'untitled.md', welcomeMarkdown, true);
+      }, 50);
     }
   }
 

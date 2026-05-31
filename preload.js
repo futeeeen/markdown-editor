@@ -1,39 +1,50 @@
 const { contextBridge, ipcRenderer } = require('electron');
-const { marked } = require('marked');
-const hljs = require('highlight.js');
+let markedInstance = null;
+let hljsInstance = null;
 
-const renderer = new marked.Renderer();
-const originalCodeRenderer = renderer.code;
-renderer.code = function(code, lang, escaped) {
-  if (lang === 'mermaid') {
-    return `<div class="mermaid">${code}</div>`;
+function getMarkedAndHljs() {
+  if (!markedInstance) {
+    const { marked } = require('marked');
+    const hljs = require('highlight.js');
+
+    const renderer = new marked.Renderer();
+    const originalCodeRenderer = renderer.code;
+    renderer.code = function(code, lang, escaped) {
+      if (lang === 'mermaid') {
+        return `<div class="mermaid">${code}</div>`;
+      }
+      return originalCodeRenderer.call(this, code, lang, escaped);
+    };
+
+    marked.setOptions({
+      renderer: renderer,
+      highlight: function(code, lang) {
+        if (lang === 'mermaid') {
+          return code;
+        }
+        const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+        return hljs.highlight(code, { language }).value;
+      },
+      langPrefix: 'hljs language-',
+      pedantic: false,
+      gfm: true,
+      breaks: true,
+      sanitize: false,
+      smartypants: false,
+      xhtml: false
+    });
+
+    markedInstance = marked;
+    hljsInstance = hljs;
   }
-  return originalCodeRenderer.call(this, code, lang, escaped);
-};
-
-// Configure marked with highlight.js syntax highlighting
-marked.setOptions({
-  renderer: renderer,
-  highlight: function(code, lang) {
-    if (lang === 'mermaid') {
-      return code;
-    }
-    const language = hljs.getLanguage(lang) ? lang : 'plaintext';
-    return hljs.highlight(code, { language }).value;
-  },
-  langPrefix: 'hljs language-',
-  pedantic: false,
-  gfm: true,
-  breaks: true,
-  sanitize: false,
-  smartypants: false,
-  xhtml: false
-});
+  return { marked: markedInstance, hljs: hljsInstance };
+}
 
 contextBridge.exposeInMainWorld('api', {
   // Markdown parsing engine
   parseMarkdown: (markdownText) => {
     try {
+      const { marked } = getMarkedAndHljs();
       const katex = require('katex');
       const blockMath = [];
       const inlineMath = [];
