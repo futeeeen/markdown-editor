@@ -969,10 +969,11 @@ When your writing is complete, you can:
               :root {
                 ${themeStyles}
               }
-              html, body {
+              html {
                 background-color: var(--bg-pane);
               }
               body {
+                background-color: transparent !important;
                 font-family: 'Inter', sans-serif;
                 color: var(--text-main);
                 max-width: 800px;

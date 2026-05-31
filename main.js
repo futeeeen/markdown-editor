@@ -398,12 +398,13 @@ ipcMain.handle('export-pdf', async (event, htmlContent, suggestedPath, themeClas
         @page {
           margin: 0;
         }
-        html, body {
+        html {
           background-color: var(--bg-pane, #ffffff);
           margin: 0;
           padding: 0;
         }
         body {
+          background-color: transparent !important;
           font-family: 'Inter', sans-serif;
           color: var(--text-main, #1a1a1a);
           line-height: 1.6;
@@ -411,6 +412,7 @@ ipcMain.handle('export-pdf', async (event, htmlContent, suggestedPath, themeClas
           font-size: 11pt;
           box-sizing: border-box;
           min-height: 100vh;
+          margin: 0;
         }
         h1, h2, h3, h4, h5, h6 {
           font-family: 'Outfit', sans-serif;
