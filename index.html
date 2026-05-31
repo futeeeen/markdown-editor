@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MarkdownPro - Premium Previewer & Editor</title>
+  
+  <!-- Premium Modern Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Style System Sheet -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Offline KaTeX for Math Formulas -->
+  <link rel="stylesheet" href="node_modules/katex/dist/katex.min.css">
+  
+  <!-- Lucide Icons (Premium SVG Icons) -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="theme-aether-dark">
+  
+  <!-- Top App Glass Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="logo-wrapper">
+        <i data-lucide="edit-3" class="logo-icon"></i>
+        <span class="app-name">Markdown<span class="accent-text">Pro</span></span>
+      </div>
+      <div class="divider"></div>
+      <div class="file-info-badge">
+        <i data-lucide="file-text" class="file-icon"></i>
+        <span id="current-filename">untitled.md</span>
+        <span id="unsaved-dot" class="unsaved-indicator hidden"></span>
+      </div>
+    </div>
+    
+    <div class="header-center">
+      <div class="quick-stats">
+        <span class="stat-badge"><i data-lucide="align-left"></i> <span id="stat-words">0</span> words</span>
+        <span class="stat-badge"><i data-lucide="clock"></i> <span id="stat-read-time">1</span> min read</span>
+      </div>
+    </div>
+    
+    <div class="header-right">
+      <!-- Quick View Controls -->
+      <button id="toggle-toc-btn" class="header-action-btn" title="Toggle Table of Contents (Ctrl+Shift+L)">
+        <i data-lucide="list-tree"></i>
+      </button>
+      <button id="toggle-split-btn" class="header-action-btn active" title="Toggle Split Preview (Ctrl+P)">
+        <i data-lucide="columns"></i>
+      </button>
+      <button id="toggle-cheatsheet-btn" class="header-action-btn" title="Toggle Cheat Sheet (Ctrl+Shift+R)">
+        <i data-lucide="help-circle"></i>
+      </button>
+      <div class="divider"></div>
+      
+      <!-- Theme Selection Dropdown -->
+      <div class="dropdown-wrapper">
+        <button id="theme-menu-btn" class="theme-select-btn">
+          <i data-lucide="palette"></i>
+          <span>Theme</span>
+          <i data-lucide="chevron-down" class="chevron"></i>
+        </button>
+        <div id="theme-dropdown" class="theme-dropdown-menu">
+          <button class="theme-option active" data-theme="theme-aether-dark">
+            <span class="theme-color-preview dark"></span> Aether Dark
+          </button>
+          <button class="theme-option" data-theme="theme-nordic-light">
+            <span class="theme-color-preview light"></span> Nordic Light
+          </button>
+          <button class="theme-option" data-theme="theme-cyberpunk">
+            <span class="theme-color-preview cyberpunk"></span> Cyberpunk Grid
+          </button>
+          <button class="theme-option" data-theme="theme-forest">
+            <span class="theme-color-preview forest"></span> Forest Moss
+          </button>
+          <button class="theme-option" data-theme="theme-dracula">
+            <span class="theme-color-preview dracula"></span> Dracula Tribute
+          </button>
+        </div>
+      </div>
+      
+      <div class="divider"></div>
+      <!-- Quick File Actions -->
+      <button id="save-btn" class="quick-btn primary" title="Save File (Ctrl+S)">
+        <i data-lucide="save"></i>
+        <span>Save</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Premium Tabs Bar -->
+  <div id="tab-bar" class="tab-bar">
+    <div id="tabs-container" class="tabs-container">
+      <!-- Tabs injected by JS -->
+    </div>
+    <button class="tab-new-btn" id="new-tab-btn" title="New Tab (Ctrl+N)">
+      <i data-lucide="plus"></i>
+    </button>
+  </div>
+
+  <!-- Main Split Window Workspace -->
+  <main class="app-workspace">
+    
+    <!-- Left Sidebar: Real-time Table of Contents -->
+    <aside id="toc-sidebar" class="sidebar left-sidebar collapsed">
+      <div class="sidebar-header">
+        <i data-lucide="list-tree"></i>
+        <h3>Outline</h3>
+        <button id="close-toc-btn" class="close-sidebar-btn"><i data-lucide="x"></i></button>
+      </div>
+      <div class="sidebar-content">
+        <div id="toc-tree" class="toc-list">
+          <!-- Nested TOC elements injected by JS -->
+          <div class="toc-placeholder">No headings found in your document. Use #, ##, ### to create headings.</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Content Workspace -->
+    <div id="workspace-panes" class="workspace-panes">
+      <!-- Editor Column (Left Pane) -->
+      <section id="editor-pane" class="pane editor-pane">
+        <div class="pane-header">
+          <div class="pane-title">
+            <i data-lucide="code-2"></i>
+            <span>Markdown Editor</span>
+          </div>
+          <div class="pane-actions">
+            <button id="search-btn" class="pane-action-btn" title="Search & Replace (Ctrl+F)">
+              <i data-lucide="search"></i>
+            </button>
+            <button id="clear-editor-btn" class="pane-action-btn" title="Clear Editor">
+              <i data-lucide="trash-2"></i>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Editor Input Wrapper -->
+        <div class="editor-input-area">
+          <div class="editor-gutter">
+            <!-- Line numbers injected by JS -->
+            <div id="line-numbers" class="line-numbers">1</div>
+          </div>
+          <textarea id="markdown-editor" spellcheck="false" placeholder="Start writing Markdown here..."></textarea>
+        </div>
+      </section>
+
+      <!-- Draggable Split Divider -->
+      <div id="resizer" class="pane-resizer" title="Drag to resize panes">
+        <div class="resizer-handle"></div>
+      </div>
+
+      <!-- Preview Column (Right Pane) -->
+      <section id="preview-pane" class="pane preview-pane">
+        <div class="pane-header">
+          <div class="pane-title">
+            <i data-lucide="eye"></i>
+            <span>Live Preview</span>
+          </div>
+          <div class="pane-actions">
+            <button id="export-html-btn" class="pane-action-btn" title="Export as Styled HTML">
+              <i data-lucide="file-code"></i>
+              <span>HTML</span>
+            </button>
+            <button id="export-pdf-btn" class="pane-action-btn" title="Export as Styled PDF">
+              <i data-lucide="file-down"></i>
+              <span>PDF</span>
+            </button>
+            <button id="toggle-fullscreen-preview-btn" class="pane-action-btn" title="Toggle Fullscreen Preview">
+              <i data-lucide="maximize-2"></i>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Rendered Output Area -->
+        <div id="preview-container" class="preview-container markdown-body">
+          <!-- Parsed HTML content gets injected here -->
+        </div>
+      </section>
+    </div>
+
+    <!-- Right Sidebar: Markdown Syntax Cheat Sheet -->
+    <aside id="cheatsheet-sidebar" class="sidebar right-sidebar collapsed">
+      <div class="sidebar-header">
+        <i data-lucide="help-circle"></i>
+        <h3>Syntax Guide</h3>
+        <button id="close-cheatsheet-btn" class="close-sidebar-btn"><i data-lucide="x"></i></button>
+      </div>
+      <div class="sidebar-content">
+        <div class="guide-section">
+          <h4>Headers</h4>
+          <div class="guide-item">
+            <code># Header 1</code>
+            <code>## Header 2</code>
+            <code>### Header 3</code>
+          </div>
+        </div>
+        <div class="guide-section">
+          <h4>Emphasis</h4>
+          <div class="guide-item">
+            <code>*italics*</code> or <code>_italics_</code>
+            <code>**bold**</code> or <code>__bold__</code>
+            <code>~~strikethrough~~</code>
+          </div>
+        </div>
+        <div class="guide-section">
+          <h4>Lists</h4>
+          <div class="guide-item">
+            <code>- Unordered list item</code>
+            <code>1. Ordered list item</code>
+            <code>- [ ] Task list unchecked</code>
+            <code>- [x] Task list completed</code>
+          </div>
+        </div>
+        <div class="guide-section">
+          <h4>Links & Images</h4>
+          <div class="guide-item">
+            <code>[Link Text](https://url.com)</code>
+            <code>![Alt Text](image-path.png)</code>
+          </div>
+        </div>
+        <div class="guide-section">
+          <h4>Code Blocks</h4>
+          <div class="guide-item">
+            <code>`inline code`</code>
+            <pre><code>```javascript
+// Block Code
+console.log('hi');
+```</code></pre>
+          </div>
+        </div>
+        <div class="guide-section">
+          <h4>Blockquotes & Lines</h4>
+          <div class="guide-item">
+            <code>&gt; Quote text goes here.</code>
+            <code>--- (Horizontal Divider)</code>
+          </div>
+        </div>
+        <div class="guide-section">
+          <h4>Tables</h4>
+          <div class="guide-item">
+            <pre><code>| Header | Header |
+| ------ | ------ |
+| Item   | Item   |</code></pre>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- Bottom App Status Bar -->
+  <footer id="status-bar" class="app-status-bar">
+    <div class="status-left">
+      <span class="status-item file-path-indicator" id="status-file-path">
+        <i data-lucide="folder"></i> <span>No file loaded (Editing Draft)</span>
+      </span>
+    </div>
+    
+    <div class="status-right">
+      <span class="status-item"><i data-lucide="whole-word"></i> Char: <span id="stat-chars">0</span></span>
+      <span class="status-item"><i data-lucide="align-justify"></i> Para: <span id="stat-paragraphs">0</span></span>
+      <span class="status-item cursor-indicator"><i data-lucide="navigation"></i> Ln <span id="cursor-line">1</span>, Col <span id="cursor-col">1</span></span>
+      <span class="status-item theme-indicator" id="status-theme-name"><i data-lucide="palette"></i> Aether Dark</span>
+    </div>
+  </footer>
+
+  <!-- Search & Replace Dialog Modal -->
+  <div id="search-modal" class="modal-overlay hidden">
+    <div class="modal-box glass-box search-modal-box animate-scale-up">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i data-lucide="search"></i>
+          <span>Search & Replace</span>
+        </div>
+        <button id="close-search-btn" class="modal-close-btn"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="search-input-group">
+          <label for="search-input">Find:</label>
+          <input type="text" id="search-input" placeholder="Text to search...">
+        </div>
+        <div class="search-input-group">
+          <label for="replace-input">Replace:</label>
+          <input type="text" id="replace-input" placeholder="Replacement text...">
+        </div>
+        <div class="search-options">
+          <label class="checkbox-label">
+            <input type="checkbox" id="search-case-sensitive"> Match Case
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="find-prev-btn" class="modal-btn secondary">Prev</button>
+        <button id="find-next-btn" class="modal-btn secondary">Next</button>
+        <button id="replace-btn" class="modal-btn primary">Replace</button>
+        <button id="replace-all-btn" class="modal-btn primary">Replace All</button>
+      </div>
+      <!-- Recent Replacements Undo History Panel -->
+      <div id="search-history-panel" class="search-history-panel">
+        <div class="history-header">
+          <i data-lucide="history"></i>
+          <span>Recent Replacements (Last 3)</span>
+        </div>
+        <div id="search-history-list" class="history-list">
+          <div class="history-placeholder">No replacements in this session.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unsaved Changes Prompt Modal -->
+  <div id="save-confirm-modal" class="modal-overlay hidden">
+    <div class="modal-box glass-box animate-scale-up">
+      <div class="modal-header header-warning">
+        <div class="modal-title">
+          <i data-lucide="alert-triangle" class="warning-icon"></i>
+          <span>Unsaved Changes</span>
+        </div>
+      </div>
+      <div class="modal-body">
+        <p>You have unsaved changes in <strong id="modal-filename">untitled.md</strong>. Do you want to save them before leaving?</p>
+      </div>
+      <div class="modal-footer">
+        <button id="modal-cancel-btn" class="modal-btn secondary">Cancel</button>
+        <button id="modal-discard-btn" class="modal-btn danger">Discard Changes</button>
+        <button id="modal-save-btn" class="modal-btn primary">Save File</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Renderer Script -->
+  <script src="renderer.js"></script>
+</body>
+</html>

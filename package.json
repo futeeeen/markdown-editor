@@ -1,0 +1,29 @@
+{
+  "name": "markdown-previewer",
+  "version": "1.0.0",
+  "description": "A premium, high-performance Markdown Editor and Live Previewer with Windows shell integration.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-packager . MarkdownPro --platform=win32 --arch=x64 --overwrite --out=dist",
+    "dist": "electron-packager . MarkdownPro --platform=win32 --arch=x64 --overwrite --out=dist"
+  },
+  "keywords": [
+    "markdown",
+    "preview",
+    "editor",
+    "windows",
+    "electron"
+  ],
+  "author": "Antigravity",
+  "license": "MIT",
+  "dependencies": {
+    "highlight.js": "^11.8.0",
+    "katex": "^0.17.0",
+    "marked": "^9.0.0"
+  },
+  "devDependencies": {
+    "electron": "^25.3.0",
+    "electron-packager": "^17.1.1"
+  }
+}
