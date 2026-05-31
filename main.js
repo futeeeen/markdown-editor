@@ -414,6 +414,9 @@ ipcMain.handle('export-pdf', async (event, htmlContent, suggestedPath, themeClas
           min-height: 100vh;
           margin: 0;
         }
+        body > *:first-child {
+          margin-top: 0 !important;
+        }
         h1, h2, h3, h4, h5, h6 {
           font-family: 'Outfit', sans-serif;
           font-weight: 700;
