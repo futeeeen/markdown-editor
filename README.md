@@ -2,6 +2,11 @@
 
 > **MarkdownPro** is a premium, desktop-grade Markdown Editor and Live Previewer built with Node.js and Electron. Inspired by standard web-based previewers, it is engineered as a high-performance Windows desktop application, featuring a gorgeous glassmorphic user interface, Notepad++ style multi-tabs, high-fidelity offline LaTeX math equations (KaTeX), responsive scroll sync, and theme-aware PDF/HTML exporting.
 
+<p align="center">
+  <img src="assets/aether-dark.png" width="49%" alt="MarkdownPro - Aether Dark Theme" />
+  <img src="assets/nordic-light.png" width="49%" alt="MarkdownPro - Nordic Light Theme" />
+</p>
+
 ---
 
 ## ✨ Key Features & Technical Highlights
@@ -39,6 +44,9 @@
 ### 🛠️ 6. Advanced Writer Utilities
 * **Responsive Scroll Sync**: Perfect scroll-sync algorithm matches editor scroll height with live preview positioning seamlessly.
 * **Outline (TOC) Sidebar**: Left sidebar parses headers (`#` to `####`) in real-time. Clicking any outline heading scrolls both panes instantly.
+  
+  <img src="assets/outline-sidebar.png" width="350" alt="MarkdownPro - Real-time Outline Sidebar" />
+
 * **Bracket Auto-Pairing**: Auto-closes brackets `() [] {}` and quotes `"" ''`.
 * **Image Drag & Drop**: Dragging an image from Windows Explorer into the editor automatically converts it into a local Markdown image link.
 * **Word Statistics & Tracking**: Gutter line numbers, cursor coordinates tracking, paragraph/char counts, and estimated reading time.
