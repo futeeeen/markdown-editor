@@ -395,8 +395,13 @@ ipcMain.handle('export-pdf', async (event, htmlContent, suggestedPath, themeClas
         :root {
           ${themeStyles || ''}
         }
+        @page {
+          margin: 0;
+        }
         html, body {
           background-color: var(--bg-pane, #ffffff);
+          margin: 0;
+          padding: 0;
         }
         body {
           font-family: 'Inter', sans-serif;
@@ -404,6 +409,8 @@ ipcMain.handle('export-pdf', async (event, htmlContent, suggestedPath, themeClas
           line-height: 1.6;
           padding: 2cm;
           font-size: 11pt;
+          box-sizing: border-box;
+          min-height: 100vh;
         }
         h1, h2, h3, h4, h5, h6 {
           font-family: 'Outfit', sans-serif;
@@ -491,7 +498,12 @@ ipcMain.handle('export-pdf', async (event, htmlContent, suggestedPath, themeClas
         }
         
         @media print {
-          body { padding: 0; }
+          body {
+            padding: 2cm;
+            background-color: var(--bg-pane, #ffffff) !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
           a[href]::after { content: " (" attr(href) ")"; font-size: 90%; color: #666; }
         }
       </style>
