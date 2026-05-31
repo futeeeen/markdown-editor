@@ -399,7 +399,7 @@ ipcMain.handle('export-pdf', async (event, htmlContent, suggestedPath, themeClas
           margin: 0;
         }
         html {
-          background-color: var(--bg-pane, #ffffff);
+          background-color: var(--bg-app, #ffffff);
           margin: 0;
           padding: 0;
         }
@@ -500,9 +500,14 @@ ipcMain.handle('export-pdf', async (event, htmlContent, suggestedPath, themeClas
         }
         
         @media print {
+          html {
+            background-color: var(--bg-app, #ffffff) !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
           body {
             padding: 2cm;
-            background-color: var(--bg-pane, #ffffff) !important;
+            background-color: transparent !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }

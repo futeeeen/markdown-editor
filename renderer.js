@@ -970,7 +970,7 @@ When your writing is complete, you can:
                 ${themeStyles}
               }
               html {
-                background-color: var(--bg-pane);
+                background-color: var(--bg-app);
               }
               body {
                 background-color: transparent !important;
