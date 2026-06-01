@@ -1685,6 +1685,15 @@ When your writing is complete, you can:
       const hasSelection = editor.selectionStart !== editor.selectionEnd;
       
       contextMenuEl.innerHTML = `
+        <div class="context-menu-item" id="ctx-undo">
+          <div class="item-label"><i data-lucide="undo"></i><span>Undo (復原)</span></div>
+          <span class="item-shortcut">Ctrl+Z</span>
+        </div>
+        <div class="context-menu-item" id="ctx-redo">
+          <div class="item-label"><i data-lucide="redo"></i><span>Redo (重做)</span></div>
+          <span class="item-shortcut">Ctrl+Y</span>
+        </div>
+        <div class="context-menu-separator"></div>
         <div class="context-menu-item ${hasSelection ? '' : 'disabled'}" id="ctx-cut">
           <div class="item-label"><i data-lucide="scissors"></i><span>Cut (剪下)</span></div>
           <span class="item-shortcut">Ctrl+X</span>
@@ -1730,6 +1739,15 @@ When your writing is complete, you can:
           </div>
         </div>
       `;
+      
+      contextMenuEl.querySelector('#ctx-undo').addEventListener('click', () => {
+        editor.focus();
+        document.execCommand('undo');
+      });
+      contextMenuEl.querySelector('#ctx-redo').addEventListener('click', () => {
+        editor.focus();
+        document.execCommand('redo');
+      });
       
       if (hasSelection) {
         contextMenuEl.querySelector('#ctx-cut').addEventListener('click', () => {
