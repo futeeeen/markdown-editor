@@ -1576,6 +1576,23 @@ When your writing is complete, you can:
     toggleCheatsheetBtn.classList.add('active');
   });
 
+  // Load Mermaid.js asynchronously to prevent startup delays
+  function loadMermaidAsync() {
+    setTimeout(() => {
+      const script = document.createElement('script');
+      script.src = 'node_modules/mermaid/dist/mermaid.min.js';
+      script.onload = () => {
+        console.log('[Renderer] Mermaid.js loaded asynchronously in the background!');
+        initMermaid(activeTheme);
+        updatePreviewDirect();
+      };
+      script.onerror = (err) => {
+        console.error('[Renderer] Failed to load Mermaid.js asynchronously:', err);
+      };
+      document.body.appendChild(script);
+    }, 150);
+  }
+
   // --- Application Initial Launch Flow ---
   async function initApp() {
     if (window.lucide) {
@@ -1587,6 +1604,9 @@ When your writing is complete, you can:
       console.log('[Renderer] Node modules are loaded, updating preview...');
       updatePreviewDirect();
     });
+
+    // Asynchronously load the heavy Mermaid.js engine
+    loadMermaidAsync();
 
     const argvFile = await window.api.getArgvFile();
     if (argvFile) {
