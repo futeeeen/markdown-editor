@@ -145,6 +145,8 @@ contextBridge.exposeInMainWorld('api', {
   showSaveDialog: (suggestedPath) => ipcRenderer.invoke('show-save-dialog', suggestedPath),
   getArgvFile: () => ipcRenderer.invoke('get-argv-file'),
   exportPdf: (htmlContent, suggestedPath, themeClass, themeStyles) => ipcRenderer.invoke('export-pdf', htmlContent, suggestedPath, themeClass, themeStyles),
+  saveClipboardImage: (filePath) => ipcRenderer.invoke('save-clipboard-image', filePath),
+  moveTempImages: (tempImageMappings, destMarkdownPath) => ipcRenderer.invoke('move-temp-images', tempImageMappings, destMarkdownPath),
   
   // File watching bridge
   watchFile: (filePath) => ipcRenderer.send('watch-file', filePath),

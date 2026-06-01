@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, clipboard } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -246,7 +246,32 @@ if (!gotTheLock) {
     }
   });
 
+  function cleanupTempImages() {
+    try {
+      const exeDir = path.dirname(app.getPath('exe'));
+      const tempFolderPath = path.join(exeDir, 'temp_images');
+      if (fs.existsSync(tempFolderPath)) {
+        const files = fs.readdirSync(tempFolderPath);
+        for (const file of files) {
+          try {
+            fs.unlinkSync(path.join(tempFolderPath, file));
+          } catch (e) {
+            // Ignore
+          }
+        }
+        try {
+          fs.rmdirSync(tempFolderPath);
+        } catch (e) {
+          // Ignore
+        }
+      }
+    } catch (error) {
+      console.error('Failed to clean up temp images:', error);
+    }
+  }
+
   app.whenReady().then(() => {
+    cleanupTempImages();
     createWindow();
 
     app.on('activate', () => {
@@ -340,6 +365,89 @@ ipcMain.handle('show-save-dialog', async (event, suggestedPath) => {
   }
 
   return filePath;
+});
+
+ipcMain.handle('save-clipboard-image', async (event, filePath) => {
+  try {
+    const image = clipboard.readImage();
+    if (image.isEmpty()) {
+      return { success: false, message: 'Clipboard does not contain an image.' };
+    }
+
+    const pngBuffer = image.toPNG();
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 1000);
+    const imageName = `image_${timestamp}_${random}.png`;
+
+    if (filePath) {
+      // Saved Markdown file
+      const mdDir = path.dirname(filePath);
+      const mdBaseName = path.basename(filePath, path.extname(filePath));
+      const imageFolderName = `${mdBaseName}_images`;
+      const imageFolderPath = path.join(mdDir, imageFolderName);
+
+      if (!fs.existsSync(imageFolderPath)) {
+        fs.mkdirSync(imageFolderPath, { recursive: true });
+      }
+
+      const destPath = path.join(imageFolderPath, imageName);
+      fs.writeFileSync(destPath, pngBuffer);
+
+      return {
+        success: true,
+        relativePath: `${imageFolderName}/${imageName}`,
+        absolutePath: destPath,
+        isTemp: false
+      };
+    } else {
+      // Unsaved Draft (temp_images folder next to exe)
+      const exeDir = path.dirname(app.getPath('exe'));
+      const tempFolderPath = path.join(exeDir, 'temp_images');
+
+      if (!fs.existsSync(tempFolderPath)) {
+        fs.mkdirSync(tempFolderPath, { recursive: true });
+      }
+
+      const destPath = path.join(tempFolderPath, imageName);
+      fs.writeFileSync(destPath, pngBuffer);
+
+      return {
+        success: true,
+        relativePath: `temp_images/${imageName}`,
+        absolutePath: destPath,
+        isTemp: true
+      };
+    }
+  } catch (error) {
+    console.error('Failed to save clipboard image:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('move-temp-images', async (event, tempImageMappings, destMarkdownPath) => {
+  try {
+    const mdDir = path.dirname(destMarkdownPath);
+    
+    for (const mapping of tempImageMappings) {
+      const sourcePath = mapping.sourceAbsolutePath;
+      const targetRelPath = mapping.targetRelativePath;
+      const targetAbsPath = path.join(mdDir, targetRelPath);
+      const targetDir = path.dirname(targetAbsPath);
+
+      if (!fs.existsSync(targetDir)) {
+        fs.mkdirSync(targetDir, { recursive: true });
+      }
+
+      if (fs.existsSync(sourcePath)) {
+        fs.copyFileSync(sourcePath, targetAbsPath);
+        fs.unlinkSync(sourcePath);
+      }
+    }
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to move temp images:', error);
+    return { success: false, error: error.message };
+  }
 });
 
 ipcMain.handle('get-argv-file', async (event) => {

@@ -650,6 +650,48 @@ When your writing is complete, you can:
     }
   });
 
+  // --- Clipboard Image Paste Integration ---
+  editor.addEventListener('paste', async (e) => {
+    const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+    let hasImage = false;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        hasImage = true;
+        break;
+      }
+    }
+    
+    if (hasImage) {
+      e.preventDefault();
+      
+      const currentTab = tabs.find(t => t.id === activeTabId);
+      const filePath = currentTab ? currentTab.filePath : null;
+      
+      const result = await window.api.saveClipboardImage(filePath);
+      if (result && result.success) {
+        const start = editor.selectionStart;
+        const end = editor.selectionEnd;
+        
+        const imagePath = result.isTemp 
+          ? `file:///${result.absolutePath.replace(/\\/g, '/')}`
+          : result.relativePath;
+          
+        const markdownImageTag = `![image](${imagePath})`;
+        
+        editor.value = editor.value.substring(0, start) + markdownImageTag + editor.value.substring(end);
+        editor.selectionStart = editor.selectionEnd = start + markdownImageTag.length;
+        
+        if (currentTab) {
+          currentTab.content = editor.value;
+          currentTab.isDirty = true;
+        }
+        
+        updatePreview();
+        updateCursorPos();
+      }
+    }
+  });
+
   // --- Draggable Split Pane Resize ---
   resizer.addEventListener('mousedown', (e) => {
     e.preventDefault();
@@ -833,18 +875,58 @@ When your writing is complete, you can:
     }
   }
 
+  // Helper to copy temp pasted screenshots to permanent file images folder
+  async function resolveTempImages(destFilePath, markdownContent) {
+    const tempImageRegex = /file:\/\/\/([A-Za-z]:\/[^\)]*?\/temp_images\/(image_\d+_\d+\.png))/g;
+    const mappings = [];
+    let match;
+    
+    while ((match = tempImageRegex.exec(markdownContent)) !== null) {
+      const sourceAbsolutePath = match[1].replace(/\//g, '\\');
+      const imageName = match[2];
+      const mdBaseName = destFilePath.substring(destFilePath.lastIndexOf('\\') + 1, destFilePath.lastIndexOf('.'));
+      const imageFolderName = `${mdBaseName}_images`;
+      const targetRelativePath = `${imageFolderName}/${imageName}`;
+      
+      mappings.push({
+        sourceAbsolutePath,
+        targetRelativePath
+      });
+    }
+    
+    if (mappings.length > 0) {
+      const moveResult = await window.api.moveTempImages(mappings, destFilePath);
+      if (moveResult && moveResult.success) {
+        let updatedContent = markdownContent;
+        for (const mapping of mappings) {
+          const searchPath = `file:///${mapping.sourceAbsolutePath.replace(/\\/g, '/')}`;
+          updatedContent = updatedContent.replaceAll(searchPath, mapping.targetRelativePath);
+        }
+        return updatedContent;
+      }
+    }
+    
+    return markdownContent;
+  }
+
   // 2. Safe Save File
   async function handleSaveFile() {
     const currentTab = tabs.find(t => t.id === activeTabId);
     if (!currentTab) return;
     
-    currentTab.content = editor.value; // Sync editor state
+    currentTab.content = editor.value;
     
     if (!currentTab.filePath) {
       return handleSaveAsFile();
     }
     
     try {
+      const resolvedContent = await resolveTempImages(currentTab.filePath, currentTab.content);
+      if (resolvedContent !== currentTab.content) {
+        currentTab.content = resolvedContent;
+        editor.value = resolvedContent;
+      }
+
       const success = await window.api.writeFile(currentTab.filePath, currentTab.content);
       if (success) {
         currentTab.lastSavedContent = currentTab.content;
@@ -862,7 +944,7 @@ When your writing is complete, you can:
     const currentTab = tabs.find(t => t.id === activeTabId);
     if (!currentTab) return;
     
-    currentTab.content = editor.value; // Sync editor state
+    currentTab.content = editor.value;
     
     try {
       const defaultName = currentTab.filePath || currentTab.fileName;
@@ -872,6 +954,10 @@ When your writing is complete, you can:
         if (currentTab.filePath) {
           window.api.unwatchFile(currentTab.filePath);
         }
+
+        const resolvedContent = await resolveTempImages(filePath, currentTab.content);
+        currentTab.content = resolvedContent;
+        editor.value = resolvedContent;
 
         const success = await window.api.writeFile(filePath, currentTab.content);
         if (success) {
