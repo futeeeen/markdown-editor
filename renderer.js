@@ -1582,6 +1582,12 @@ When your writing is complete, you can:
       window.lucide.createIcons();
     }
 
+    // Re-render when background modules finish loading
+    window.api.onModulesLoaded(() => {
+      console.log('[Renderer] Node modules are loaded, updating preview...');
+      updatePreviewDirect();
+    });
+
     const argvFile = await window.api.getArgvFile();
     if (argvFile) {
       const basename = argvFile.filePath.substring(argvFile.filePath.lastIndexOf('\\') + 1);

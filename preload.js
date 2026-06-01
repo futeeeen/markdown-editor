@@ -1,51 +1,96 @@
 const { contextBridge, ipcRenderer } = require('electron');
-let markedInstance = null;
-let hljsInstance = null;
+
+let markedModule = null;
+let hljsModule = null;
+let katexModule = null;
+let modulesLoaded = false;
+let onModulesLoadedCallback = null;
+
+// Background Asynchronous Preloading
+setTimeout(() => {
+  try {
+    const start = Date.now();
+    markedModule = require('marked');
+    hljsModule = require('highlight.js');
+    katexModule = require('katex');
+    modulesLoaded = true;
+    console.log(`[Preload] Background modules preloaded in ${Date.now() - start}ms`);
+    if (onModulesLoadedCallback) {
+      onModulesLoadedCallback();
+    }
+  } catch (err) {
+    console.error('Background module preloading failed:', err);
+  }
+}, 50);
 
 function getMarkedAndHljs() {
-  if (!markedInstance) {
-    const { marked } = require('marked');
-    const hljs = require('highlight.js');
-
-    const renderer = new marked.Renderer();
-    const originalCodeRenderer = renderer.code;
-    renderer.code = function(code, lang, escaped) {
-      if (lang === 'mermaid') {
-        return `<div class="mermaid">${code}</div>`;
-      }
-      return originalCodeRenderer.call(this, code, lang, escaped);
-    };
-
-    marked.setOptions({
-      renderer: renderer,
-      highlight: function(code, lang) {
-        if (lang === 'mermaid') {
-          return code;
-        }
-        const language = hljs.getLanguage(lang) ? lang : 'plaintext';
-        return hljs.highlight(code, { language }).value;
-      },
-      langPrefix: 'hljs language-',
-      pedantic: false,
-      gfm: true,
-      breaks: true,
-      sanitize: false,
-      smartypants: false,
-      xhtml: false
-    });
-
-    markedInstance = marked;
-    hljsInstance = hljs;
+  if (!markedModule || !hljsModule) {
+    // Synchronous fallback in case parseMarkdown is somehow triggered before the timeout fires
+    markedModule = require('marked');
+    hljsModule = require('highlight.js');
   }
-  return { marked: markedInstance, hljs: hljsInstance };
+
+  const renderer = new markedModule.Renderer();
+  const originalCodeRenderer = renderer.code;
+  renderer.code = function(code, lang, escaped) {
+    if (lang === 'mermaid') {
+      return `<div class="mermaid">${code}</div>`;
+    }
+    return originalCodeRenderer.call(this, code, lang, escaped);
+  };
+
+  markedModule.setOptions({
+    renderer: renderer,
+    highlight: function(code, lang) {
+      if (lang === 'mermaid') {
+        return code;
+      }
+      const language = hljsModule.getLanguage(lang) ? lang : 'plaintext';
+      return hljsModule.highlight(code, { language }).value;
+    },
+    langPrefix: 'hljs language-',
+    pedantic: false,
+    gfm: true,
+    breaks: true,
+    sanitize: false,
+    smartypants: false,
+    xhtml: false
+  });
+
+  return { marked: markedModule, hljs: hljsModule };
 }
 
 contextBridge.exposeInMainWorld('api', {
+  // Modules preloading check
+  onModulesLoaded: (callback) => {
+    onModulesLoadedCallback = callback;
+    if (modulesLoaded) {
+      callback();
+    }
+  },
+  areModulesLoaded: () => modulesLoaded,
+
   // Markdown parsing engine
   parseMarkdown: (markdownText) => {
+    if (!modulesLoaded) {
+      // Escape HTML to prevent injection in raw preview
+      const escapedText = markdownText
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+      return `<div class="preview-loading-placeholder">
+                <i data-lucide="loader" class="spinner"></i>
+                <span>Preparing editor workspace...</span>
+              </div>
+              <pre class="loading-markdown-raw">${escapedText}</pre>`;
+    }
+
     try {
       const { marked } = getMarkedAndHljs();
-      const katex = require('katex');
+      const katex = katexModule || require('katex');
       const blockMath = [];
       const inlineMath = [];
 

@@ -1675,3 +1675,49 @@ textarea, input {
   text-align: center;
   padding: 4px 0;
 }
+
+/* --------------------------------------------------------------------------
+   8. Background Preloading States
+   -------------------------------------------------------------------------- */
+
+.preview-loading-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 32px 24px 32px;
+  color: var(--text-muted);
+  font-family: 'Outfit', sans-serif;
+  gap: 16px;
+  background: var(--bg-pane);
+  border-radius: var(--border-radius-md);
+  margin-bottom: 20px;
+  border: 1px solid var(--border-glass);
+}
+
+.preview-loading-placeholder .spinner {
+  width: 28px;
+  height: 28px;
+  animation: spin 1.2s linear infinite;
+  color: var(--accent-color);
+  filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.4));
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.loading-markdown-raw {
+  white-space: pre-wrap;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.9rem;
+  color: var(--text-main);
+  opacity: 0.65;
+  background-color: var(--bg-gutter);
+  padding: 20px;
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border-glass);
+  line-height: 1.5;
+  overflow-x: auto;
+}
