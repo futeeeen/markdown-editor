@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, Menu, clipboard } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, clipboard, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -447,6 +447,19 @@ ipcMain.handle('move-temp-images', async (event, tempImageMappings, destMarkdown
   } catch (error) {
     console.error('Failed to move temp images:', error);
     return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('show-item-in-folder', async (event, filePath) => {
+  try {
+    if (filePath && fs.existsSync(filePath)) {
+      shell.showItemInFolder(filePath);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Failed to show item in folder:', error);
+    return false;
   }
 });
 

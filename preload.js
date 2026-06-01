@@ -147,6 +147,7 @@ contextBridge.exposeInMainWorld('api', {
   exportPdf: (htmlContent, suggestedPath, themeClass, themeStyles) => ipcRenderer.invoke('export-pdf', htmlContent, suggestedPath, themeClass, themeStyles),
   saveClipboardImage: (filePath) => ipcRenderer.invoke('save-clipboard-image', filePath),
   moveTempImages: (tempImageMappings, destMarkdownPath) => ipcRenderer.invoke('move-temp-images', tempImageMappings, destMarkdownPath),
+  showItemInFolder: (filePath) => ipcRenderer.invoke('show-item-in-folder', filePath),
   
   // File watching bridge
   watchFile: (filePath) => ipcRenderer.send('watch-file', filePath),

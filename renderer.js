@@ -344,6 +344,10 @@ When your writing is complete, you can:
         closeTab(tab.id, e);
       });
       
+      tabElement.addEventListener('contextmenu', (e) => {
+        showCustomContextMenu(e, 'tab', tab.id);
+      });
+      
       tabsContainer.appendChild(tabElement);
     });
     
@@ -1600,6 +1604,338 @@ When your writing is complete, you can:
     } else {
       alert(`找不到任何符合「${query}」的項目。`);
     }
+  });
+
+  // --- Premium Custom Context Menu Controls ---
+  const contextMenuEl = document.getElementById('custom-context-menu');
+
+  function hideCustomContextMenu() {
+    contextMenuEl.classList.add('hidden');
+  }
+
+  document.addEventListener('click', hideCustomContextMenu);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') hideCustomContextMenu();
+  });
+
+  function applyMarkdownFormat(formatType) {
+    const start = editor.selectionStart;
+    const end = editor.selectionEnd;
+    const selected = editor.value.substring(start, end);
+    let replacement = '';
+    
+    const templates = {
+      'h1': { wrap: '# ', placeholder: 'Title' },
+      'h2': { wrap: '## ', placeholder: 'Heading' },
+      'h3': { wrap: '### ', placeholder: 'Subheading' },
+      'bold': { prefix: '**', suffix: '**', placeholder: 'bold text' },
+      'italic': { prefix: '*', suffix: '*', placeholder: 'italic text' },
+      'strike': { prefix: '~~', suffix: '~~', placeholder: 'strikethrough' },
+      'code': { prefix: '`', suffix: '`', placeholder: 'code' },
+      'codeblock': { prefix: '```code\n', suffix: '\n```', placeholder: '// code block' },
+      'ul': { wrap: '- ', placeholder: 'List item' },
+      'ol': { wrap: '1. ', placeholder: 'List item' },
+      'quote': { wrap: '> ', placeholder: 'Quote' },
+      'task': { wrap: '- [ ] ', placeholder: 'Task item' }
+    };
+    
+    const rule = templates[formatType];
+    if (!rule) return;
+    
+    if (selected.length > 0) {
+      if (rule.wrap) {
+        replacement = rule.wrap + selected.split('\n').join('\n' + rule.wrap);
+      } else {
+        replacement = rule.prefix + selected + rule.suffix;
+      }
+    } else {
+      const placeholder = rule.placeholder;
+      if (rule.wrap) {
+        replacement = rule.wrap + placeholder;
+      } else {
+        replacement = rule.prefix + placeholder + rule.suffix;
+      }
+    }
+    
+    editor.value = editor.value.substring(0, start) + replacement + editor.value.substring(end);
+    editor.selectionStart = start;
+    editor.selectionEnd = start + replacement.length;
+    editor.focus();
+    
+    const currentTab = tabs.find(t => t.id === activeTabId);
+    if (currentTab) {
+      currentTab.content = editor.value;
+      currentTab.isDirty = true;
+    }
+    
+    updatePreview();
+    updateCursorPos();
+  }
+
+  function showCustomContextMenu(e, type, targetId = null) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    contextMenuEl.innerHTML = '';
+    
+    const x = e.clientX;
+    const y = e.clientY;
+    
+    if (type === 'editor') {
+      const hasSelection = editor.selectionStart !== editor.selectionEnd;
+      
+      contextMenuEl.innerHTML = `
+        <div class="context-menu-item ${hasSelection ? '' : 'disabled'}" id="ctx-cut">
+          <div class="item-label"><i data-lucide="scissors"></i><span>Cut (剪下)</span></div>
+          <span class="item-shortcut">Ctrl+X</span>
+        </div>
+        <div class="context-menu-item ${hasSelection ? '' : 'disabled'}" id="ctx-copy">
+          <div class="item-label"><i data-lucide="copy"></i><span>Copy (複製)</span></div>
+          <span class="item-shortcut">Ctrl+C</span>
+        </div>
+        <div class="context-menu-item" id="ctx-paste">
+          <div class="item-label"><i data-lucide="clipboard"></i><span>Paste (貼上)</span></div>
+          <span class="item-shortcut">Ctrl+V</span>
+        </div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item" id="ctx-selectall">
+          <div class="item-label"><i data-lucide="check-square"></i><span>Select All (全選)</span></div>
+          <span class="item-shortcut">Ctrl+A</span>
+        </div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item" id="ctx-scrolltop">
+          <div class="item-label"><i data-lucide="arrow-up"></i><span>Scroll to Top (移至頂端)</span></div>
+        </div>
+        <div class="context-menu-item" id="ctx-scrollbottom">
+          <div class="item-label"><i data-lucide="arrow-down"></i><span>Scroll to Bottom (移至底部)</span></div>
+        </div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item has-submenu" id="ctx-turninto">
+          <div class="item-label"><i data-lucide="palette"></i><span>Turn into</span></div>
+          <div class="context-menu-submenu">
+            <div class="context-menu-item" data-format="h1">Heading 1</div>
+            <div class="context-menu-item" data-format="h2">Heading 2</div>
+            <div class="context-menu-item" data-format="h3">Heading 3</div>
+            <div class="context-menu-separator"></div>
+            <div class="context-menu-item" data-format="bold"><b>Bold (粗體)</b></div>
+            <div class="context-menu-item" data-format="italic"><i>Italic (斜體)</i></div>
+            <div class="context-menu-item" data-format="strike"><strike>Strikethrough (刪除線)</strike></div>
+            <div class="context-menu-item" data-format="code"><code>Inline Code</code></div>
+            <div class="context-menu-item" data-format="codeblock"><code>Code Block</code></div>
+            <div class="context-menu-separator"></div>
+            <div class="context-menu-item" data-format="ul">Unordered List</div>
+            <div class="context-menu-item" data-format="ol">Ordered List</div>
+            <div class="context-menu-item" data-format="task">Task List</div>
+            <div class="context-menu-item" data-format="quote">Blockquote</div>
+          </div>
+        </div>
+      `;
+      
+      if (hasSelection) {
+        contextMenuEl.querySelector('#ctx-cut').addEventListener('click', () => {
+          document.execCommand('cut');
+        });
+        contextMenuEl.querySelector('#ctx-copy').addEventListener('click', () => {
+          document.execCommand('copy');
+        });
+      }
+      contextMenuEl.querySelector('#ctx-paste').addEventListener('click', () => {
+        editor.focus();
+        document.execCommand('paste');
+      });
+      contextMenuEl.querySelector('#ctx-selectall').addEventListener('click', () => {
+        editor.select();
+      });
+      contextMenuEl.querySelector('#ctx-scrolltop').addEventListener('click', () => {
+        editor.scrollTop = 0;
+      });
+      contextMenuEl.querySelector('#ctx-scrollbottom').addEventListener('click', () => {
+        editor.scrollTop = editor.scrollHeight;
+      });
+      
+      contextMenuEl.querySelectorAll('.context-menu-submenu .context-menu-item').forEach(subItem => {
+        subItem.addEventListener('click', () => {
+          const format = subItem.getAttribute('data-format');
+          applyMarkdownFormat(format);
+        });
+      });
+      
+    } else if (type === 'preview') {
+      const selectedText = window.getSelection().toString().trim();
+      
+      if (selectedText.length > 0) {
+        let lineInfoText = 'Editor Line: Not Found';
+        if (editor.value) {
+          const index = editor.value.indexOf(selectedText);
+          if (index !== -1) {
+            const textBefore = editor.value.substring(0, index);
+            const lineNum = textBefore.split('\n').length;
+            lineInfoText = `Editor Line: ${lineNum}`;
+          }
+        }
+        
+        contextMenuEl.innerHTML = `
+          <div class="context-menu-title" style="pointer-events: none; opacity: 0.65;">${lineInfoText}</div>
+          <div class="context-menu-separator"></div>
+          <div class="context-menu-item" id="ctx-preview-copy">
+            <div class="item-label"><i data-lucide="copy"></i><span>Copy (複製)</span></div>
+            <span class="item-shortcut">Ctrl+C</span>
+          </div>
+          <div class="context-menu-item" id="ctx-preview-selectall">
+            <div class="item-label"><i data-lucide="check-square"></i><span>Select All (全選)</span></div>
+            <span class="item-shortcut">Ctrl+A</span>
+          </div>
+        `;
+        
+        contextMenuEl.querySelector('#ctx-preview-copy').addEventListener('click', () => {
+          document.execCommand('copy');
+        });
+        contextMenuEl.querySelector('#ctx-preview-selectall').addEventListener('click', () => {
+          const range = document.createRange();
+          range.selectNodeContents(previewContainer);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+        });
+        
+      } else {
+        contextMenuEl.innerHTML = `
+          <div class="context-menu-item" id="ctx-preview-scrolltop">
+            <div class="item-label"><i data-lucide="arrow-up"></i><span>Scroll to Top (移至頂端)</span></div>
+          </div>
+          <div class="context-menu-item" id="ctx-preview-scrollbottom">
+            <div class="item-label"><i data-lucide="arrow-down"></i><span>Scroll to Bottom (移至底部)</span></div>
+          </div>
+        `;
+        
+        contextMenuEl.querySelector('#ctx-preview-scrolltop').addEventListener('click', () => {
+          previewContainer.scrollTop = 0;
+        });
+        contextMenuEl.querySelector('#ctx-preview-scrollbottom').addEventListener('click', () => {
+          previewContainer.scrollTop = previewContainer.scrollHeight;
+        });
+      }
+      
+    } else if (type === 'tab') {
+      const targetTab = tabs.find(t => t.id === targetId);
+      if (!targetTab) return;
+      
+      const isSaved = !!targetTab.filePath;
+      
+      contextMenuEl.innerHTML = `
+        <div class="context-menu-item" id="ctx-tab-save">
+          <div class="item-label"><i data-lucide="save"></i><span>Save (儲存)</span></div>
+          <span class="item-shortcut">Ctrl+S</span>
+        </div>
+        <div class="context-menu-item" id="ctx-tab-duplicate">
+          <div class="item-label"><i data-lucide="copy"></i><span>Duplicate Tab (複製分頁)</span></div>
+        </div>
+        <div class="context-menu-item" id="ctx-tab-close">
+          <div class="item-label"><i data-lucide="x-circle"></i><span>Close Tab (關閉分頁)</span></div>
+          <span class="item-shortcut">Ctrl+W</span>
+        </div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item" id="ctx-tab-moveleft">
+          <div class="item-label"><i data-lucide="arrow-left"></i><span>Move to Leftmost (移至最左)</span></div>
+        </div>
+        <div class="context-menu-item" id="ctx-tab-moveright">
+          <div class="item-label"><i data-lucide="arrow-right"></i><span>Move to Rightmost (移至最右)</span></div>
+        </div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item ${isSaved ? '' : 'disabled'}" id="ctx-tab-reveal">
+          <div class="item-label"><i data-lucide="folder-open"></i><span>Open File Location (開啟檔案位置)</span></div>
+        </div>
+      `;
+      
+      contextMenuEl.querySelector('#ctx-tab-save').addEventListener('click', () => {
+        if (activeTabId !== targetId) {
+          switchTab(targetId);
+        }
+        setTimeout(() => {
+          handleSaveFile();
+        }, 50);
+      });
+      
+      contextMenuEl.querySelector('#ctx-tab-duplicate').addEventListener('click', () => {
+        let tabContent = '';
+        if (targetId === activeTabId) {
+          tabContent = editor.value;
+        } else {
+          tabContent = targetTab.content;
+        }
+        
+        const cleanName = targetTab.fileName.replace(/\.md$/, '');
+        const duplicateName = `${cleanName}-1.md`;
+        
+        createNewTab(null, duplicateName, tabContent, true);
+      });
+      
+      contextMenuEl.querySelector('#ctx-tab-close').addEventListener('click', (e) => {
+        closeTab(targetId, e);
+      });
+      
+      contextMenuEl.querySelector('#ctx-tab-moveleft').addEventListener('click', () => {
+        const index = tabs.findIndex(t => t.id === targetId);
+        if (index > 0) {
+          const tabObj = tabs.splice(index, 1)[0];
+          tabs.unshift(tabObj);
+          renderTabs();
+        }
+      });
+      
+      contextMenuEl.querySelector('#ctx-tab-moveright').addEventListener('click', () => {
+        const index = tabs.findIndex(t => t.id === targetId);
+        if (index !== -1 && index < tabs.length - 1) {
+          const tabObj = tabs.splice(index, 1)[0];
+          tabs.push(tabObj);
+          renderTabs();
+        }
+      });
+      
+      if (isSaved) {
+        contextMenuEl.querySelector('#ctx-tab-reveal').addEventListener('click', () => {
+          window.api.showItemInFolder(targetTab.filePath);
+        });
+      }
+    }
+    
+    if (window.lucide) {
+      window.lucide.createIcons({
+        attrs: {
+          class: 'lucide-context-icon'
+        },
+        nameAttr: 'data-lucide',
+        icons: window.lucide.icons
+      });
+    }
+    
+    contextMenuEl.classList.remove('hidden');
+    
+    const menuWidth = contextMenuEl.offsetWidth || 190;
+    const menuHeight = contextMenuEl.offsetHeight || 280;
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    
+    let finalX = x;
+    let finalY = y;
+    
+    if (x + menuWidth > windowWidth) {
+      finalX = windowWidth - menuWidth - 8;
+    }
+    if (y + menuHeight > windowHeight) {
+      finalY = windowHeight - menuHeight - 8;
+    }
+    
+    contextMenuEl.style.left = `${finalX}px`;
+    contextMenuEl.style.top = `${finalY}px`;
+  }
+
+  editor.addEventListener('contextmenu', (e) => {
+    showCustomContextMenu(e, 'editor');
+  });
+
+  previewContainer.addEventListener('contextmenu', (e) => {
+    showCustomContextMenu(e, 'preview');
   });
 
   // --- Keyboard Shortcuts Listener ---
