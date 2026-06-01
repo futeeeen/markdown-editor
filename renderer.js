@@ -1760,6 +1760,16 @@ When your writing is complete, you can:
         });
       });
       
+      const turnIntoItem = contextMenuEl.querySelector('#ctx-turninto');
+      if (turnIntoItem) {
+        turnIntoItem.addEventListener('click', (e) => {
+          if (e.target.closest('.context-menu-submenu')) return;
+          e.preventDefault();
+          e.stopPropagation();
+          turnIntoItem.classList.toggle('locked');
+        });
+      }
+      
     } else if (type === 'preview') {
       const selectedText = window.getSelection().toString().trim();
       
@@ -1928,6 +1938,48 @@ When your writing is complete, you can:
     
     contextMenuEl.style.left = `${finalX}px`;
     contextMenuEl.style.top = `${finalY}px`;
+    
+    // Position the submenu dynamically to prevent overflow
+    const submenu = contextMenuEl.querySelector('.context-menu-submenu');
+    if (submenu) {
+      // Save original style to measure
+      const origDisplay = submenu.style.display;
+      const origVisibility = submenu.style.visibility;
+      
+      // Temporarily display flex & invisible to measure actual offsetWidth and offsetHeight
+      submenu.style.display = 'flex';
+      submenu.style.visibility = 'hidden';
+      
+      const subWidth = submenu.offsetWidth || 180;
+      const subHeight = submenu.offsetHeight || 420;
+      
+      // Restore styles
+      submenu.style.display = origDisplay;
+      submenu.style.visibility = origVisibility;
+      
+      const parentItem = contextMenuEl.querySelector('.has-submenu');
+      if (parentItem) {
+        const parentRect = parentItem.getBoundingClientRect();
+        
+        // Horizontal overflow check
+        if (parentRect.right + subWidth > windowWidth) {
+          submenu.style.left = 'auto';
+          submenu.style.right = '100%';
+        } else {
+          submenu.style.left = '100%';
+          submenu.style.right = 'auto';
+        }
+        
+        // Vertical overflow check
+        if (parentRect.top + subHeight > windowHeight) {
+          submenu.style.top = 'auto';
+          submenu.style.bottom = '-6px';
+        } else {
+          submenu.style.top = '-6px';
+          submenu.style.bottom = 'auto';
+        }
+      }
+    }
   }
 
   editor.addEventListener('contextmenu', (e) => {

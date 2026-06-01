@@ -1825,10 +1825,22 @@ textarea, input {
   margin-left: auto;
   padding-left: 8px;
   line-height: 1;
+  display: inline-block;
+  transition: transform 0.2s ease, color 0.2s ease;
 }
 
 .context-menu-item.has-submenu:hover::after {
   color: var(--accent-color);
+}
+
+.context-menu-item.has-submenu.locked {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--accent-color);
+}
+
+.context-menu-item.has-submenu.locked::after {
+  color: var(--accent-color);
+  transform: rotate(90deg);
 }
 
 .context-menu-submenu {
@@ -1847,6 +1859,7 @@ textarea, input {
   flex-direction: column;
 }
 
-.context-menu-item.has-submenu:hover .context-menu-submenu {
-  display: flex;
+.context-menu-item.has-submenu:hover .context-menu-submenu,
+.context-menu-item.has-submenu.locked .context-menu-submenu {
+  display: flex !important;
 }
