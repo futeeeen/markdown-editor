@@ -1747,10 +1747,10 @@ When your writing is complete, you can:
         editor.select();
       });
       contextMenuEl.querySelector('#ctx-scrolltop').addEventListener('click', () => {
-        editor.scrollTop = 0;
+        editor.scrollTo({ top: 0, behavior: 'smooth' });
       });
       contextMenuEl.querySelector('#ctx-scrollbottom').addEventListener('click', () => {
-        editor.scrollTop = editor.scrollHeight;
+        editor.scrollTo({ top: editor.scrollHeight, behavior: 'smooth' });
       });
       
       contextMenuEl.querySelectorAll('.context-menu-submenu .context-menu-item').forEach(subItem => {
@@ -1819,10 +1819,10 @@ When your writing is complete, you can:
         `;
         
         contextMenuEl.querySelector('#ctx-preview-scrolltop').addEventListener('click', () => {
-          previewContainer.scrollTop = 0;
+          previewContainer.scrollTo({ top: 0, behavior: 'smooth' });
         });
         contextMenuEl.querySelector('#ctx-preview-scrollbottom').addEventListener('click', () => {
-          previewContainer.scrollTop = previewContainer.scrollHeight;
+          previewContainer.scrollTo({ top: previewContainer.scrollHeight, behavior: 'smooth' });
         });
       }
       
