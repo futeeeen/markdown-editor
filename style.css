@@ -967,8 +967,9 @@ textarea, input {
   margin-bottom: 0.25em;
 }
 
-.markdown-body li.task-list-item {
-  list-style-type: none;
+.markdown-body li.task-list-item,
+.markdown-body li:has(input[type="checkbox"]) {
+  list-style-type: none !important;
   padding-left: 0.2em;
 }
 
