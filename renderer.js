@@ -1657,10 +1657,10 @@ When your writing is complete, you can:
       }
     }
     
-    editor.value = editor.value.substring(0, start) + replacement + editor.value.substring(end);
-    editor.selectionStart = start;
-    editor.selectionEnd = start + replacement.length;
     editor.focus();
+    editor.setSelectionRange(start, end);
+    document.execCommand('insertText', false, replacement);
+    editor.setSelectionRange(start, start + replacement.length);
     
     const currentTab = tabs.find(t => t.id === activeTabId);
     if (currentTab) {
