@@ -527,7 +527,7 @@ When your writing is complete, you can:
         const headingRect = heading.getBoundingClientRect();
         const absoluteOffset = headingRect.top - containerRect.top + previewContainer.scrollTop;
         
-        previewContainer.scrollTop = absoluteOffset;
+        previewContainer.scrollTo({ top: absoluteOffset, behavior: 'smooth' });
         
         // 3. Scroll Editor directly to matching heading line
         const headingText = heading.innerText.trim();
