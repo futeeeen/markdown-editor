@@ -29,7 +29,7 @@ function createWindow() {
     height: 800,
     minWidth: 800,
     minHeight: 600,
-    title: 'MarkdownPro - Premium Previewer & Editor',
+    title: 'MarkdownPro v1.0.0 - Premium Previewer & Editor',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

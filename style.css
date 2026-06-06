@@ -394,6 +394,20 @@ textarea, input {
   letter-spacing: -0.02em;
 }
 
+.app-version {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  background-color: var(--border-glass-active);
+  color: var(--accent-color);
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 4px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid var(--border-glass);
+}
+
 .accent-text {
   color: var(--accent-color);
   background: var(--accent-gradient);
