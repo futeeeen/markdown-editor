@@ -29,7 +29,7 @@ function createWindow() {
     height: 800,
     minWidth: 800,
     minHeight: 600,
-    title: 'MarkdownPro v1.0.0 - Premium Previewer & Editor',
+    title: 'MarkdownPro v1.1.0 - Premium Previewer & Editor',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -202,7 +202,7 @@ function createApplicationMenu() {
               type: 'info',
               title: 'About MarkdownPro',
               message: 'MarkdownPro - Premium Markdown Editor & Live Previewer',
-              detail: 'Version 1.0.0\nCreated with Node.js and Electron.\nFeatures custom fluid themes, responsive scroll sync, real-time table of contents generation, and native Windows integration.',
+              detail: 'Version 1.1.0\nCreated with Node.js and Electron.\nFeatures custom fluid themes, responsive scroll sync, real-time table of contents generation, and native Windows integration.',
               buttons: ['Awesome!']
             });
           }
