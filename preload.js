@@ -31,30 +31,26 @@ function getMarkedAndHljs() {
   }
 
   const renderer = new markedModule.Renderer();
-  const originalCodeRenderer = renderer.code;
   renderer.code = function(code, lang, escaped) {
-    if (lang === 'mermaid') {
+    const cleanLang = lang ? lang.split(/\s+/)[0] : '';
+    if (cleanLang === 'mermaid') {
       return `<div class="mermaid">${code}</div>`;
     }
-    return originalCodeRenderer.call(this, code, lang, escaped);
+    
+    let highlighted;
+    try {
+      const language = hljsModule.getLanguage(cleanLang) ? cleanLang : 'plaintext';
+      highlighted = hljsModule.highlight(code, { language }).value;
+    } catch (e) {
+      highlighted = code;
+    }
+    return `<pre><code class="hljs language-${cleanLang || 'plaintext'}">${highlighted}</code></pre>`;
   };
 
-  markedModule.setOptions({
+  markedModule.use({
     renderer: renderer,
-    highlight: function(code, lang) {
-      if (lang === 'mermaid') {
-        return code;
-      }
-      const language = hljsModule.getLanguage(lang) ? lang : 'plaintext';
-      return hljsModule.highlight(code, { language }).value;
-    },
-    langPrefix: 'hljs language-',
-    pedantic: false,
-    gfm: true,
     breaks: true,
-    sanitize: false,
-    smartypants: false,
-    xhtml: false
+    gfm: true
   });
 
   return { marked: markedModule, hljs: hljsModule };

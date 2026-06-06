@@ -420,7 +420,7 @@ When your writing is complete, you can:
     // 6. Initialize and render Mermaid diagrams
     if (window.mermaid) {
       try {
-        window.mermaid.init(undefined, '.mermaid');
+        window.mermaid.run({ querySelector: '.mermaid' });
       } catch (err) {
         console.error('Mermaid render failed:', err);
       }
@@ -2070,18 +2070,16 @@ When your writing is complete, you can:
 
   // Load Mermaid.js asynchronously to prevent startup delays
   function loadMermaidAsync() {
-    setTimeout(() => {
-      const script = document.createElement('script');
-      script.src = 'node_modules/mermaid/dist/mermaid.min.js';
-      script.onload = () => {
+    setTimeout(async () => {
+      try {
+        const { default: mermaid } = await import('./node_modules/mermaid/dist/mermaid.esm.min.mjs');
+        window.mermaid = mermaid;
         console.log('[Renderer] Mermaid.js loaded asynchronously in the background!');
         initMermaid(activeTheme);
         updatePreviewDirect();
-      };
-      script.onerror = (err) => {
+      } catch (err) {
         console.error('[Renderer] Failed to load Mermaid.js asynchronously:', err);
-      };
-      document.body.appendChild(script);
+      }
     }, 150);
   }
 
