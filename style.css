@@ -855,6 +855,9 @@ textarea, input {
   padding: 16px 0;
   user-select: none;
   overflow: hidden;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
 }
 
 .line-numbers {
@@ -881,6 +884,9 @@ textarea, input {
   overflow-y: auto;
   white-space: pre-wrap;
   tab-size: 4;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
 }
 
 #markdown-editor::selection {
@@ -896,6 +902,9 @@ textarea, input {
   padding: 24px 32px;
   overflow-y: auto;
   color: var(--text-main);
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
 }
 
 /* Typography styles for Rendered HTML (markdown-body) */

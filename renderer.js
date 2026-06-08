@@ -463,45 +463,86 @@ When your writing is complete, you can:
     }
   }
 
-  editor.addEventListener('scroll', () => {
-    lineNumbers.parentElement.scrollTop = editor.scrollTop;
+  // --- Optimized Scroll Syncing with Cache & RAF ---
+  let scrollLimitsDirty = true;
+  let maxEditorScroll = 0;
+  let maxPreviewScroll = 0;
 
-    if (isSyncPaused) return;
-    if (activeScrollSource && activeScrollSource !== 'editor') return;
-    
-    activeScrollSource = 'editor';
-    clearScrollTimeout();
-    
-    const maxEditorScroll = editor.scrollHeight - editor.clientHeight;
-    if (maxEditorScroll > 0) {
-      const percentage = editor.scrollTop / maxEditorScroll;
-      const maxPreviewScroll = previewContainer.scrollHeight - previewContainer.clientHeight;
-      previewContainer.scrollTop = percentage * maxPreviewScroll;
+  function updateScrollLimits() {
+    maxEditorScroll = editor.scrollHeight - editor.clientHeight;
+    maxPreviewScroll = previewContainer.scrollHeight - previewContainer.clientHeight;
+    scrollLimitsDirty = false;
+  }
+
+  // ResizeObserver to track dimension changes and invalidate scroll limits
+  if (window.ResizeObserver) {
+    const resizeObserver = new ResizeObserver(() => {
+      scrollLimitsDirty = true;
+    });
+    resizeObserver.observe(editor);
+    resizeObserver.observe(previewContainer);
+  }
+
+  let editorScrollRaf = null;
+  let previewScrollRaf = null;
+
+  editor.addEventListener('scroll', () => {
+    if (editorScrollRaf) {
+      cancelAnimationFrame(editorScrollRaf);
     }
-    
-    scrollTimeout = setTimeout(() => {
-      activeScrollSource = null;
-    }, 100);
-  });
+
+    editorScrollRaf = requestAnimationFrame(() => {
+      // Sync line numbers gutter
+      lineNumbers.parentElement.scrollTop = editor.scrollTop;
+
+      if (isSyncPaused) return;
+      if (activeScrollSource && activeScrollSource !== 'editor') return;
+
+      activeScrollSource = 'editor';
+      clearScrollTimeout();
+
+      if (scrollLimitsDirty) {
+        updateScrollLimits();
+      }
+
+      if (maxEditorScroll > 0) {
+        const percentage = editor.scrollTop / maxEditorScroll;
+        previewContainer.scrollTop = percentage * maxPreviewScroll;
+      }
+
+      scrollTimeout = setTimeout(() => {
+        activeScrollSource = null;
+      }, 100);
+    });
+  }, { passive: true });
 
   previewContainer.addEventListener('scroll', () => {
-    if (isSyncPaused) return;
-    if (activeScrollSource && activeScrollSource !== 'preview') return;
-    
-    activeScrollSource = 'preview';
-    clearScrollTimeout();
-    
-    const maxPreviewScroll = previewContainer.scrollHeight - previewContainer.clientHeight;
-    if (maxPreviewScroll > 0) {
-      const percentage = previewContainer.scrollTop / maxPreviewScroll;
-      const maxEditorScroll = editor.scrollHeight - editor.clientHeight;
-      editor.scrollTop = percentage * maxEditorScroll;
+    if (previewScrollRaf) {
+      cancelAnimationFrame(previewScrollRaf);
     }
-    
-    scrollTimeout = setTimeout(() => {
-      activeScrollSource = null;
-    }, 100);
-  });
+
+    previewScrollRaf = requestAnimationFrame(() => {
+      if (isSyncPaused) return;
+      if (activeScrollSource && activeScrollSource !== 'preview') return;
+
+      activeScrollSource = 'preview';
+      clearScrollTimeout();
+
+      if (scrollLimitsDirty) {
+        updateScrollLimits();
+      }
+
+      if (maxPreviewScroll > 0) {
+        const percentage = previewContainer.scrollTop / maxPreviewScroll;
+        editor.scrollTop = percentage * maxEditorScroll;
+      }
+
+      scrollTimeout = setTimeout(() => {
+        activeScrollSource = null;
+      }, 100);
+    });
+  }, { passive: true });
+
 
   // --- Live Table of Contents Builder (Click Outline to Jump) ---
   function buildTableOfContents() {
