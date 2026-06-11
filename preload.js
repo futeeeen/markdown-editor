@@ -5,6 +5,7 @@ let hljsModule = null;
 let katexModule = null;
 let modulesLoaded = false;
 let onModulesLoadedCallback = null;
+let currentParsingFilePath = null;
 
 // Background Asynchronous Preloading
 setTimeout(() => {
@@ -47,6 +48,26 @@ function getMarkedAndHljs() {
     return `<pre><code class="hljs language-${cleanLang || 'plaintext'}">${highlighted}</code></pre>`;
   };
 
+  renderer.image = function(href, title, text) {
+    let cleanHref = href;
+    // Check if href is a relative path and we have an active file path
+    if (currentParsingFilePath && href && 
+        !href.startsWith('http://') && 
+        !href.startsWith('https://') && 
+        !href.startsWith('file://') && 
+        !href.startsWith('data:')) {
+      try {
+        const path = require('path');
+        const dir = path.dirname(currentParsingFilePath);
+        const absolutePath = path.resolve(dir, href);
+        cleanHref = 'file:///' + absolutePath.replace(/\\/g, '/');
+      } catch (e) {
+        console.error('Failed to resolve relative image path:', e);
+      }
+    }
+    return `<img src="${cleanHref}" alt="${text || ''}"${title ? ` title="${title}"` : ''}>`;
+  };
+
   markedModule.use({
     renderer: renderer,
     breaks: true,
@@ -67,7 +88,8 @@ contextBridge.exposeInMainWorld('api', {
   areModulesLoaded: () => modulesLoaded,
 
   // Markdown parsing engine
-  parseMarkdown: (markdownText) => {
+  parseMarkdown: (markdownText, filePath) => {
+    currentParsingFilePath = filePath;
     if (!modulesLoaded) {
       // Escape HTML to prevent injection in raw preview
       const escapedText = markdownText

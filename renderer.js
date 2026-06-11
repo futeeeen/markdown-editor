@@ -405,9 +405,11 @@ When your writing is complete, you can:
 
   function updatePreviewDirect() {
     const rawText = editor.value;
+    const activeTab = tabs.find(t => t.id === activeTabId);
+    const filePath = activeTab ? activeTab.filePath : null;
     
     // 1. Core GFM Compile Injection
-    const renderedHtml = window.api.parseMarkdown(rawText);
+    const renderedHtml = window.api.parseMarkdown(rawText, filePath);
     previewContainer.innerHTML = renderedHtml;
     
     // 2. Compute statistics Counters
@@ -1281,7 +1283,7 @@ When your writing is complete, you can:
             </style>
           </head>
           <body class="${activeTheme}">
-            ${previewContainer.innerHTML}
+            ${window.api.parseMarkdown(currentTab.content, null)}
           </body>
           </html>
         `;
