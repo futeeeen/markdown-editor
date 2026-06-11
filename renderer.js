@@ -700,6 +700,56 @@ When your writing is complete, you can:
       updatePreview();
       updateCursorPos();
     }
+    
+    // 3. Formatting Shortcuts (Ctrl/Cmd + Key)
+    const isCtrl = e.ctrlKey || e.metaKey;
+    if (isCtrl && !e.altKey) {
+      let formatType = null;
+      switch (e.key.toLowerCase()) {
+        case 'b':
+          e.preventDefault();
+          formatType = 'bold';
+          break;
+        case 'i':
+          e.preventDefault();
+          formatType = e.shiftKey ? 'image' : 'italic';
+          break;
+        case 'u':
+          e.preventDefault();
+          formatType = 'strike'; // Map Underline to Strikethrough in Markdown
+          break;
+        case 'x':
+          if (e.shiftKey) {
+            e.preventDefault();
+            formatType = 'strike';
+          }
+          break;
+        case 'q':
+          e.preventDefault();
+          formatType = 'quote';
+          break;
+        case 'k':
+          e.preventDefault();
+          formatType = e.shiftKey ? 'codeblock' : 'link';
+          break;
+        case 'c':
+          if (e.shiftKey) {
+            e.preventDefault();
+            formatType = 'codeblock';
+          }
+          break;
+        case '`':
+          e.preventDefault();
+          formatType = 'code';
+          break;
+      }
+      
+      if (formatType) {
+        applyMarkdownFormat(formatType);
+        updatePreview();
+        updateCursorPos();
+      }
+    }
   });
 
   // --- Image Drag-and-Drop Local Rendering ---
@@ -1717,7 +1767,9 @@ When your writing is complete, you can:
       'ul': { wrap: '- ', placeholder: 'List item' },
       'ol': { wrap: '1. ', placeholder: 'List item' },
       'quote': { wrap: '> ', placeholder: 'Quote' },
-      'task': { wrap: '- [ ] ', placeholder: 'Task item' }
+      'task': { wrap: '- [ ] ', placeholder: 'Task item' },
+      'link': { prefix: '[', suffix: '](url)', placeholder: 'link text' },
+      'image': { prefix: '![', suffix: '](image-url)', placeholder: 'image description' }
     };
     
     const rule = templates[formatType];
