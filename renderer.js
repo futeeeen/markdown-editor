@@ -7,6 +7,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const editor = document.getElementById('markdown-editor');
   const previewContainer = document.getElementById('preview-container');
   const lineNumbers = document.getElementById('line-numbers');
+  
+  // Create hidden editor-mirror for line wrapping calculation
+  const mirror = document.createElement('div');
+  mirror.className = 'editor-mirror';
+  document.body.appendChild(mirror);
   const filenameLabel = document.getElementById('current-filename');
   const unsavedDot = document.getElementById('unsaved-dot');
   
@@ -452,8 +457,38 @@ When your writing is complete, you can:
   }
 
   function updateLineNumbers() {
-    const lines = editor.value.split('\n').length;
-    lineNumbers.innerHTML = Array.from({ length: lines }, (_, i) => i + 1).join('\n');
+    const text = editor.value;
+    const lines = text.split('\n');
+    
+    // Sync style properties from editor to mirror to ensure identical font rendering
+    const computed = window.getComputedStyle(editor);
+    mirror.style.fontFamily = computed.fontFamily;
+    mirror.style.fontSize = computed.fontSize;
+    mirror.style.lineHeight = computed.lineHeight;
+    mirror.style.fontWeight = computed.fontWeight;
+    mirror.style.letterSpacing = computed.letterSpacing;
+    mirror.style.paddingLeft = computed.paddingLeft;
+    mirror.style.paddingRight = computed.paddingRight;
+    mirror.style.boxSizing = computed.boxSizing;
+    mirror.style.width = editor.clientWidth + 'px';
+    
+    // Populate the mirror div with corresponding lines
+    mirror.innerHTML = '';
+    lines.forEach((line) => {
+      const div = document.createElement('div');
+      div.className = 'editor-mirror-line';
+      div.textContent = line || ' '; // Keep empty lines visually open
+      mirror.appendChild(div);
+    });
+    
+    // Measure individual line heights and render line numbers accordingly
+    const mirrorLines = mirror.children;
+    let gutterHtml = '';
+    for (let i = 0; i < lines.length; i++) {
+      const height = mirrorLines[i].offsetHeight;
+      gutterHtml += `<div class="gutter-line-number" style="height: ${height}px; line-height: ${computed.lineHeight || '1.6'};">${i + 1}</div>`;
+    }
+    lineNumbers.innerHTML = gutterHtml;
   }
 
   // --- Scroll Syncing Algorithm ---
@@ -474,10 +509,15 @@ When your writing is complete, you can:
     scrollLimitsDirty = false;
   }
 
-  // ResizeObserver to track dimension changes and invalidate scroll limits
+  // ResizeObserver to track dimension changes, invalidate scroll limits, and sync line wrapping alignment
   if (window.ResizeObserver) {
-    const resizeObserver = new ResizeObserver(() => {
+    const resizeObserver = new ResizeObserver((entries) => {
       scrollLimitsDirty = true;
+      for (const entry of entries) {
+        if (entry.target === editor) {
+          updateLineNumbers();
+        }
+      }
     });
     resizeObserver.observe(editor);
     resizeObserver.observe(previewContainer);

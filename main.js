@@ -2,6 +2,11 @@ const { app, BrowserWindow, ipcMain, dialog, Menu, clipboard, shell } = require(
 const path = require('path');
 const fs = require('fs');
 
+// Configure separate userData path for dev mode to prevent Chromium profile locks
+if (!app.isPackaged) {
+  app.setPath('userData', path.join(app.getPath('appData'), 'MarkdownPro-Dev'));
+}
+
 let mainWindow = null;
 let isForceClose = false;
 
@@ -215,9 +220,9 @@ function createApplicationMenu() {
   Menu.setApplicationMenu(menu);
 }
 
-// Single Instance Application Lock
+// Single Instance Application Lock (only enforced in packaged production builds)
 const gotTheLock = app.requestSingleInstanceLock();
-if (!gotTheLock) {
+if (!gotTheLock && app.isPackaged) {
   app.quit();
 } else {
   app.on('second-instance', (event, commandLine) => {
