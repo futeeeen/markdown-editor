@@ -46,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const clearEditorBtn = document.getElementById('clear-editor-btn');
   const exportHtmlBtn = document.getElementById('export-html-btn');
   const exportPdfBtn = document.getElementById('export-pdf-btn');
+  const exportPngBtn = document.getElementById('export-png-btn');
   const toggleFullscreenPreviewBtn = document.getElementById('toggle-fullscreen-preview-btn');
 
   // Status Bar
@@ -1329,6 +1330,24 @@ When your writing is complete, you can:
     }
   }
 
+  // 6. Safe Export to PNG Image
+  async function handleExportPng() {
+    const currentTab = tabs.find(t => t.id === activeTabId);
+    if (!currentTab) return;
+    
+    try {
+      const suggestedPath = currentTab.filePath 
+        ? currentTab.filePath.substring(0, currentTab.filePath.lastIndexOf('.')) + '.png'
+        : 'document.png';
+        
+      const htmlContent = previewContainer.innerHTML;
+      const themeStyles = getActiveThemeStyles();
+      await window.api.exportPng(htmlContent, suggestedPath, activeTheme, themeStyles);
+    } catch (error) {
+      alert("Error exporting PNG:\n" + error.message + "\n\nStack:\n" + error.stack);
+    }
+  }
+
   // --- Modals and Close Queue Controllers ---
   
   let modalProceedCallback = null;
@@ -2187,6 +2206,7 @@ When your writing is complete, you can:
   saveBtn.addEventListener('click', handleSaveFile);
   exportHtmlBtn.addEventListener('click', handleExportHtml);
   exportPdfBtn.addEventListener('click', handleExportPdf);
+  exportPngBtn.addEventListener('click', handleExportPng);
 
   // --- Menu Action IPC Subscriptions ---
   window.api.onMenuAction('menu-new-file', () => {
@@ -2197,6 +2217,7 @@ When your writing is complete, you can:
   window.api.onMenuAction('menu-save-as-file', handleSaveAsFile);
   window.api.onMenuAction('menu-export-html', handleExportHtml);
   window.api.onMenuAction('menu-export-pdf', handleExportPdf);
+  window.api.onMenuAction('menu-export-png', handleExportPng);
   
   window.api.onMenuAction('menu-find-replace', showSearchModal);
   

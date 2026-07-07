@@ -105,6 +105,10 @@ function createApplicationMenu() {
           label: 'Export to PDF...',
           click: () => mainWindow.webContents.send('menu-export-pdf')
         },
+        {
+          label: 'Export to PNG...',
+          click: () => mainWindow.webContents.send('menu-export-png')
+        },
         { type: 'separator' },
         {
           label: 'Exit',
@@ -685,6 +689,198 @@ ipcMain.handle('export-pdf', async (event, htmlContent, suggestedPath, themeClas
     throw error;
   }
 });
+
+ipcMain.handle('export-png', async (event, htmlContent, suggestedPath, themeClass, themeStyles) => {
+  const win = getActiveWindow(event);
+  const { canceled, filePath } = await dialog.showSaveDialog(win, {
+    title: 'Export to PNG Image',
+    defaultPath: suggestedPath || 'document.png',
+    filters: [{ name: 'PNG Image', extensions: ['png'] }]
+  });
+
+  if (canceled || !filePath) return false;
+
+  // Create a hidden offscreen window to render the HTML print target
+  const captureWindow = new BrowserWindow({
+    show: false,
+    width: 850,
+    height: 600,
+    webPreferences: {
+      webSecurity: false // Temporary allow local access for capture
+    }
+  });
+
+  const katexPath = path.join(__dirname, 'node_modules', 'katex', 'dist', 'katex.min.css').replace(/\\/g, '/');
+
+  // Inject Google fonts and stylesheet matching the theme!
+  const cleanHtml = `
+    <!DOCTYPE html>
+    <html class="${themeClass || ''}">
+    <head>
+      <meta charset="utf-8">
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+      <style>
+        :root {
+          ${themeStyles || ''}
+        }
+        html, body {
+          background-color: var(--bg-app, #ffffff) !important;
+          margin: 0;
+          padding: 0;
+        }
+        body {
+          font-family: 'Inter', sans-serif;
+          color: var(--text-main, #1a1a1a);
+          line-height: 1.6;
+          padding: 40px 60px;
+          font-size: 11pt;
+          box-sizing: border-box;
+          min-height: 100vh;
+          width: 850px;
+        }
+        body > *:first-child {
+          margin-top: 0 !important;
+        }
+        h1, h2, h3, h4, h5, h6 {
+          font-family: 'Outfit', sans-serif;
+          font-weight: 700;
+          color: var(--text-main, #111);
+          margin-top: 1.5em;
+          margin-bottom: 0.5em;
+        }
+        h1 { font-size: 24pt; border-bottom: 1px solid var(--md-hr, #eaeaea); padding-bottom: 0.3em; }
+        h2 { font-size: 18pt; border-bottom: 1px solid var(--md-hr, #f0f0f0); padding-bottom: 0.3em; }
+        h3 { font-size: 14pt; }
+        code {
+          font-family: 'Fira Code', monospace;
+          background: var(--md-code-bg, #f4f4f4);
+          border: 1px solid var(--md-code-border, rgba(0,0,0,0.06));
+          padding: 0.2em 0.4em;
+          border-radius: 4px;
+          color: var(--accent-color, #0066cc);
+          font-size: 9pt;
+        }
+        pre {
+          background: var(--md-code-bg, #f4f4f4);
+          border: 1px solid var(--md-code-border, rgba(0,0,0,0.06));
+          padding: 1em;
+          border-radius: 6px;
+          overflow-x: auto;
+        }
+        pre code {
+          background: none;
+          color: inherit;
+          padding: 0;
+          font-size: 8.5pt;
+        }
+        blockquote {
+          border-left: 4px solid var(--md-blockquote-border, #0066cc);
+          background: var(--md-blockquote-bg, rgba(0, 102, 204, 0.05));
+          margin: 0;
+          padding: 0.5em 1em;
+          color: var(--text-muted, #555);
+          font-style: italic;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 1.5em 0;
+        }
+        th, td {
+          border: 1px solid var(--md-table-border, #ddd);
+          padding: 0.6em 0.8em;
+          text-align: left;
+        }
+        th {
+          background: var(--md-table-header, #f9f9f9);
+          font-weight: 600;
+        }
+        img {
+          max-width: 100%;
+          height: auto;
+        }
+        a {
+          color: var(--md-link, #0066cc);
+          text-decoration: none;
+        }
+        
+        /* Syntax Highlighting */
+        .hljs-keyword, .hljs-selector-tag, .hljs-literal, .hljs-section, .hljs-link {
+          color: var(--syn-keyword);
+          font-weight: 500;
+        }
+        .hljs-string, .hljs-doctag, .hljs-regexp, .hljs-attr {
+          color: var(--syn-string);
+        }
+        .hljs-comment, .hljs-quote {
+          color: var(--syn-comment);
+          font-style: italic;
+        }
+        .hljs-number, .hljs-variable, .hljs-template-variable, .hljs-type, .hljs-tag {
+          color: var(--syn-number);
+        }
+        .hljs-function, .hljs-title, .hljs-section-title {
+          color: var(--syn-function);
+        }
+        .hljs-built_in, .hljs-class {
+          color: var(--syn-title);
+        }
+      </style>
+      <link rel="stylesheet" href="file:///${katexPath}">
+    </head>
+    <body class="${themeClass || ''}">
+      ${htmlContent}
+    </body>
+    </html>
+  `;
+
+  const tempPath = path.join(app.getPath('userData'), 'temp-capture.html');
+  
+  try {
+    fs.writeFileSync(tempPath, cleanHtml, 'utf-8');
+    await captureWindow.loadURL(`file://${tempPath.replace(/\\/g, '/')}`);
+
+    // Wait 500ms for browser to render elements and math equations
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Get the scrollHeight of the page body
+    const height = await captureWindow.webContents.executeJavaScript(`
+      Math.max(
+        document.documentElement.scrollHeight,
+        document.body.scrollHeight,
+        document.documentElement.offsetHeight,
+        document.body.offsetHeight
+      )
+    `);
+
+    // Set content size to match the scroll height so the entire page is captured in a single PNG!
+    captureWindow.setContentSize(850, height);
+
+    // Let the renderer repaint at the new size
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    const image = await captureWindow.webContents.capturePage();
+    fs.writeFileSync(filePath, image.toPNG());
+    captureWindow.destroy();
+    
+    // Delete temp file after capture completes
+    try {
+      fs.unlinkSync(tempPath);
+    } catch (e) {}
+    
+    return true;
+  } catch (error) {
+    console.error('PNG export failed:', error);
+    captureWindow.destroy();
+    try {
+      if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+    } catch (e) {}
+    throw error;
+  }
+});
+
 
 // --- Active File Watching & Change Tracking System ---
 const activeWatchers = new Map(); // filePath -> fs.FSWatcher
