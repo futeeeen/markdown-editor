@@ -1174,6 +1174,22 @@ When your writing is complete, you can:
       const filePath = await window.api.showSaveDialog(suggestedPath);
       if (filePath) {
         const themeStyles = getActiveThemeStyles();
+        
+        // Use the pre-rendered HTML from the preview pane (which contains fully rendered Mermaid SVGs)
+        let htmlContent = previewContainer.innerHTML;
+        
+        // Convert absolute local file:// paths back to relative paths for portability
+        if (currentTab.filePath) {
+          const lastSlashIndex = Math.max(currentTab.filePath.lastIndexOf('/'), currentTab.filePath.lastIndexOf('\\'));
+          if (lastSlashIndex !== -1) {
+            const baseDir = currentTab.filePath.substring(0, lastSlashIndex + 1);
+            const baseUri = 'file:///' + baseDir.replace(/\\/g, '/');
+            const escapedBaseUri = baseUri.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+            const regex = new RegExp(escapedBaseUri, 'g');
+            htmlContent = htmlContent.replace(regex, '');
+          }
+        }
+        
         const styledPage = `
           <!DOCTYPE html>
           <html lang="en" class="${activeTheme}">
@@ -1283,7 +1299,7 @@ When your writing is complete, you can:
             </style>
           </head>
           <body class="${activeTheme}">
-            ${window.api.parseMarkdown(currentTab.content, null)}
+            ${htmlContent}
           </body>
           </html>
         `;
