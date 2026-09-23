@@ -700,19 +700,22 @@ ipcMain.handle('export-png', async (event, htmlContent, suggestedPath, themeClas
 
   if (canceled || !filePath) return false;
 
-  // Create a hidden offscreen window to render the HTML print target
+  const viewportWidth = 850;
+  const viewportHeight = 1200;
+
+  // Create a hidden rendering window at safe viewport dimensions
   const captureWindow = new BrowserWindow({
     show: false,
-    width: 850,
-    height: 600,
+    width: viewportWidth,
+    height: viewportHeight,
     webPreferences: {
-      webSecurity: false // Temporary allow local access for capture
+      webSecurity: false // Allow local file links
     }
   });
 
   const katexPath = path.join(__dirname, 'node_modules', 'katex', 'dist', 'katex.min.css').replace(/\\/g, '/');
 
-  // Inject Google fonts and stylesheet matching the theme!
+  // Inject Google fonts, styles, and scrollbar hiding matching the theme!
   const cleanHtml = `
     <!DOCTYPE html>
     <html class="${themeClass || ''}">
@@ -725,12 +728,17 @@ ipcMain.handle('export-png', async (event, htmlContent, suggestedPath, themeClas
         :root {
           ${themeStyles || ''}
         }
-        html, body {
+        html {
           background-color: var(--bg-app, #ffffff) !important;
           margin: 0;
           padding: 0;
+          overflow-y: scroll;
+        }
+        ::-webkit-scrollbar {
+          display: none !important;
         }
         body {
+          background-color: transparent !important;
           font-family: 'Inter', sans-serif;
           color: var(--text-main, #1a1a1a);
           line-height: 1.6;
@@ -738,7 +746,8 @@ ipcMain.handle('export-png', async (event, htmlContent, suggestedPath, themeClas
           font-size: 11pt;
           box-sizing: border-box;
           min-height: 100vh;
-          width: 850px;
+          width: ${viewportWidth}px;
+          margin: 0 auto;
         }
         body > *:first-child {
           margin-top: 0 !important;
@@ -842,38 +851,88 @@ ipcMain.handle('export-png', async (event, htmlContent, suggestedPath, themeClas
     fs.writeFileSync(tempPath, cleanHtml, 'utf-8');
     await captureWindow.loadURL(`file://${tempPath.replace(/\\/g, '/')}`);
 
-    // Wait 500ms for browser to render elements and math equations
+    // Wait 500ms for browser engine to render layouts, formulas, and diagrams
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    // Get the scrollHeight of the page body
-    const height = await captureWindow.webContents.executeJavaScript(`
+    // Get exact document scroll height
+    const totalHeight = await captureWindow.webContents.executeJavaScript(`
       Math.max(
         document.documentElement.scrollHeight,
-        document.body.scrollHeight,
-        document.documentElement.offsetHeight,
-        document.body.offsetHeight
+        document.body.scrollHeight
       )
     `);
 
-    // Set content size to match the scroll height so the entire page is captured in a single PNG!
-    captureWindow.setContentSize(850, height);
+    // If document is short enough to fit inside single texture limits (<= viewportHeight), capture directly
+    if (totalHeight <= viewportHeight) {
+      captureWindow.setContentSize(viewportWidth, totalHeight);
+      await new Promise(resolve => setTimeout(resolve, 150));
+      const image = await captureWindow.webContents.capturePage();
+      fs.writeFileSync(filePath, image.toPNG());
+    } else {
+      // Tile-stitching mode for long documents to avoid Chromium Viz compositor surface limits (UnknownVizError)
+      const slices = [];
+      let currentY = 0;
 
-    // Let the renderer repaint at the new size
-    await new Promise(resolve => setTimeout(resolve, 200));
+      while (currentY < totalHeight) {
+        await captureWindow.webContents.executeJavaScript(`window.scrollTo(0, ${currentY})`);
+        await new Promise(resolve => setTimeout(resolve, 80));
 
-    const image = await captureWindow.webContents.capturePage();
-    fs.writeFileSync(filePath, image.toPNG());
-    captureWindow.destroy();
-    
-    // Delete temp file after capture completes
+        const sliceImage = await captureWindow.webContents.capturePage();
+        const sliceBuffer = sliceImage.toPNG();
+        const sliceHeight = Math.min(viewportHeight, totalHeight - currentY);
+
+        slices.push({
+          dataUrl: 'data:image/png;base64,' + sliceBuffer.toString('base64'),
+          y: currentY,
+          height: sliceHeight
+        });
+
+        currentY += viewportHeight;
+      }
+
+      // Stitch slices together inside captureWindow using HTML5 2D Canvas
+      const finalDataUrl = await captureWindow.webContents.executeJavaScript(`
+        new Promise((resolve) => {
+          const slices = ${JSON.stringify(slices)};
+          const canvas = document.createElement('canvas');
+          canvas.width = ${viewportWidth};
+          canvas.height = ${totalHeight};
+          const ctx = canvas.getContext('2d');
+
+          let loaded = 0;
+          slices.forEach(slice => {
+            const img = new Image();
+            img.onload = () => {
+              const srcH = (slice.height / ${viewportHeight}) * img.naturalHeight;
+              ctx.drawImage(
+                img,
+                0, 0, img.naturalWidth, srcH,
+                0, slice.y, ${viewportWidth}, slice.height
+              );
+              loaded++;
+              if (loaded === slices.length) {
+                resolve(canvas.toDataURL('image/png'));
+              }
+            };
+            img.src = slice.dataUrl;
+          });
+        });
+      `);
+
+      const base64Data = finalDataUrl.replace(/^data:image\/png;base64,/, "");
+      fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
+    }
+
+    if (captureWindow && !captureWindow.isDestroyed()) captureWindow.destroy();
+
     try {
-      fs.unlinkSync(tempPath);
+      if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
     } catch (e) {}
-    
+
     return true;
   } catch (error) {
     console.error('PNG export failed:', error);
-    captureWindow.destroy();
+    if (captureWindow && !captureWindow.isDestroyed()) captureWindow.destroy();
     try {
       if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
     } catch (e) {}
