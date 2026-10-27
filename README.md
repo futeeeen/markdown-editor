@@ -1,136 +1,56 @@
-# 🚀 MarkdownPro
+# MarkdownPro
 
-> **MarkdownPro** is a premium, desktop-grade Markdown Editor and Live Previewer built with Node.js and Electron. Inspired by standard web-based previewers, it is engineered as a high-performance Windows desktop application, featuring a gorgeous glassmorphic user interface, Notepad++ style multi-tabs, high-fidelity offline LaTeX math equations (KaTeX), responsive scroll sync, and theme-aware PDF/HTML exporting.
-
-<p align="center">
-  <img src="assets/aether-dark.png" width="49%" alt="MarkdownPro - Aether Dark Theme" />
-  <img src="assets/nordic-light.png" width="49%" alt="MarkdownPro - Nordic Light Theme" />
-</p>
-
----
-
-## ✨ Key Features & Technical Highlights
-
-### 🎨 1. Premium Glassmorphic Design & Themes
-* **Translucent Layout**: Aesthetic glassmorphism containers (`backdrop-filter: blur(16px)`) with glowing borders and smooth micro-animations.
-* **5 High-End Theme Palettes**:
-  * 🌌 **Aether Dark (Default)**: Deep obsidian with glowing purple and blue gradients.
-  * 🏔️ **Nordic Light**: Serene, high-contrast white paper with frosty ice-blue accents.
-  * ⚡ **Cyberpunk Grid**: Radioactive green text on terminal black with neon magenta accents.
-  * 🌿 **Forest Moss**: Calming timber green tones with warm copper/amber highlights.
-  * 🧛 **Dracula Tribute**: Classic purple-tinged gothic code editor.
-* **Theme-Aware Highlighting**: Code syntax highlighting (`highlight.js`) dynamically adapts its theme colors to match your chosen aesthetic.
-
-### 🕒 2. Search & Replace with Rolling Undo History
-* **Draggable Floating Panel**: Overlay modal box that does not block background editor typing and clicks.
-* **Rolling Action Queue**: Keeps track of the **last 3 replacements** (both *Replace* and *Replace All*).
-* **Tab-Aware Multi-Tab Rollback**: Undo transactions automatically switch to the correct tab and revert files to their exact pre-replacement state chronologically, preserving timeline integrity.
-
-### 📊 3. Technical Diagrams & Flowcharts (Mermaid.js)
-* **Diagrams-as-Code**: Render rich, visual flowcharts, sequence diagrams, mindmaps, and Gantt charts inside standard markdown code blocks.
-* **100% Offline SVG Compilation**: All diagram layouts are processed locally using the integrated offline UMD library with zero external CDN script calls.
-* **Dynamic Theme Adaptation**: Diagram styles automatically adapt to match your active editor theme (e.g. Nordic Light renders crisp default themes, while dark themes render gorgeous glowing neon lines).
+一款以 Electron 建立的 Windows Markdown 編輯器，提供即時預覽、多分頁與文件匯出功能。
 
 <p align="center">
-  <img src="assets/mermaid-flowchart.png" width="70%" alt="MarkdownPro - Mermaid Flowchart Rendering" />
+  <img src="assets/aether-dark.png" width="49%" alt="深色主題" />
+  <img src="assets/nordic-light.png" width="49%" alt="淺色主題" />
 </p>
 
-### 🧮 4. High-Fidelity Offline LaTeX Equations (KaTeX)
-* **Mathematical Symbols Rendering**: Elegant mathematical equations rendering using KaTeX.
-* **Inline & Block Math**: Supports standard `$inline math$` and Centered `$$block math$$` equations.
-* **100% Offline Capability**: Both JS parsers and LaTeX fonts load directly from the local directory with zero external network requests.
-* **Zero Conflicts**: LaTeX blocks are parsed prior to Markdown compilation, completely avoiding conflicts with Markdown characters like `_` (italics) or `\\` (escapes).
+## 功能
 
-<p align="center">
-  <img src="assets/latex-fourier.png" width="45%" alt="MarkdownPro - Fourier Transform" />
-  <img src="assets/latex-distribution.png" width="45%" alt="MarkdownPro - Standard Normal Distribution" />
-</p>
+- Markdown 即時預覽、編輯與預覽捲動同步。
+- 多分頁、未儲存變更提示、外部檔案變更提示。
+- Mermaid 圖表、KaTeX 數學公式與程式碼語法標示。
+- 文件大綱、搜尋與取代、圖片拖放、字數統計。
+- 多種主題，以及 HTML、PDF 與圖片匯出。
 
-### 🔔 5. Active File Watcher & External Reload Alert
-* **Automated fs.watch Lifecycles**: Standard file watchers automatically bind to opened files and unbind cleanly when tabs are closed or saved, preventing system leaks.
-* **Debounced Self-Saves**: Logs the file's `mtimeMs` on internal save to ignore change events within `1000ms`, eliminating false reloading triggers.
-* **Interrupt-Free Background Tab Deferred Reload**: 
-  * If the active file is updated externally, a custom glassmorphic warning modal prompts you instantly.
-  * If a background tab is updated, the prompt is deferred until you actually click/switch to focus that tab, keeping your writing focus uncompromised.
-* **Keep Local vs. Reload**: Restores latest contents on "Reload" or safely flags the local tab dirty on "Keep Copy" to prevent accidental data overwrites.
+## 開發與執行
 
-### 🎨 6. Theme-Aware Full-Bleed PDF & HTML Exporting
-* **Dynamic Style Extraction**: Clicking "HTML" or "PDF" uses `getComputedStyle` to read all active theme custom variables.
-* **Edge-to-Edge Margins Fix**: Background color propagation applies directly to the `html` element to ensure both exported HTML webpages and high-fidelity PDF documents extend background colors edge-to-edge covering the print margins, completely eliminating the white margins mismatch.
+需要 Windows、Node.js 及 npm；建議使用 Node.js 22.12 以上版本。
 
-### 💾 7. Notepad++ Inspired Multi-Tab System
-* **Draft Caching**: Manage multiple documents in separate tabs without being forced to save existing drafts first.
-* **Unsaved Changes Dot**: The title bar and tabs feature a red indicator showing dirty files.
-* **Exit Guard Sequence**: Closing the application or tabs automatically queues unsaved files and prompts you to Save, Discard, or Cancel.
-
-### 🛠️ 8. Advanced Writer Utilities
-* **Responsive Scroll Sync**: Perfect scroll-sync algorithm matches editor scroll height with live preview positioning seamlessly.
-* **Outline (TOC) Sidebar**: Left sidebar parses headers (`#` to `####`) in real-time. Clicking any outline heading scrolls both panes instantly.
-  
-  <img src="assets/outline-sidebar.png" width="350" alt="MarkdownPro - Real-time Outline Sidebar" />
-
-* **Bracket Auto-Pairing**: Auto-closes brackets `() [] {}` and quotes `"" ''`.
-* **Image Drag & Drop**: Dragging an image from Windows Explorer into the editor automatically converts it into a local Markdown image link.
-* **Word Statistics & Tracking**: Gutter line numbers, cursor coordinates tracking, paragraph/char counts, and estimated reading time.
-
----
-
-## 📦 Getting Started (Local Development)
-
-### Prerequisites
-Make sure you have Node.js and npm installed on your Windows machine.
-
-### Installation
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/futeeeen/markdown-editor.git
-   cd markdown-editor
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the application:
-   ```bash
-   npm start
-   ```
-
----
-
-## ⚙️ Setting as the Default Windows Opener
-
-We have created an automated PowerShell script to associate `.md` and `.markdown` files with this application in the Windows Registry under the current user space (no Admin privileges required).
-
-### Step 1: Package the Standalone Application
-Run the packaged script to bundle the application into a portable Windows executable:
-```bash
-npm run dist
-```
-This writes the standalone folder containing the executable to:
-`dist\MarkdownPro-win32-x64\MarkdownPro.exe`
-
-### Step 2: Run the Registry Script
-Open **PowerShell** in the project root folder and execute:
 ```powershell
-.\register-default.ps1
+git clone https://github.com/futeeeen/markdown-editor.git
+cd markdown-editor
+npm ci
+npm start
 ```
 
-### Step 3: Set Default Handler in Windows Explorer
-1. Locate any `.md` file in Windows Explorer, right-click, and select **Open with -> Choose another app**.
-2. Select **MarkdownPro** from the list, check the box **"Always use this app to open .md files"**, and click **OK**.
+## Windows 打包
 
----
+| 指令 | 產物 |
+| --- | --- |
+| `npm run dist` | `dist/MarkdownPro-win32-x64/` 可攜式資料夾，需保留整個資料夾才能執行 |
+| `npm run build:installer` | `dist/` 中的 Windows 安裝程式（NSIS） |
+| `npm run build:portable` | `dist/` 中的可攜式執行檔 |
 
-## 🛠️ Built With
+打包後的應用程式不需要另行安裝 Node.js。詳細說明見 [發佈與使用指南](DISTRIBUTION-GUIDE.md)。
 
-* **Electron** - Native desktop framework
-* **Marked** - Ultra-fast Markdown compilation
-* **KaTeX** - High-fidelity math typesetting
-* **Highlight.js** - Syntax highlighting
-* **Lucide Icons** - Modern SVG icons
+## 專案結構
 
----
+| 路徑 | 用途 |
+| --- | --- |
+| `main.js`、`preload.js` | Electron 主程序與介面橋接 |
+| `index.html`、`renderer.js`、`style.css` | 編輯器介面與功能 |
+| `assets/` | 字型、圖示程式庫與 README 截圖 |
+| `build/` | Windows 打包圖示 |
+| `scripts/` | 可攜式版本的 Windows 設定腳本 |
+| `dist/` | 本機產生的打包結果，不納入 Git |
 
-## 📄 License
+## 技術
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+Electron、Marked、Mermaid、KaTeX 和 Highlight.js。
+
+## 授權
+
+`package.json` 標示為 MIT；目前 repository 尚未附上完整授權條款。

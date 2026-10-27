@@ -6,7 +6,69 @@
   "scripts": {
     "start": "electron .",
     "pack": "electron-packager . MarkdownPro --platform=win32 --arch=x64 --overwrite --out=dist",
-    "dist": "electron-packager . MarkdownPro --platform=win32 --arch=x64 --overwrite --out=dist"
+    "dist": "electron-packager . MarkdownPro --platform=win32 --arch=x64 --overwrite --out=dist",
+    "build:installer": "electron-builder --win nsis",
+    "build:portable": "electron-builder --win portable"
+  },
+  "build": {
+    "appId": "com.markdownpro.app",
+    "productName": "MarkdownPro",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer.js",
+      "index.html",
+      "style.css",
+      "assets/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "scripts/",
+        "to": "scripts/",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "fileAssociations": [
+      {
+        "ext": "md",
+        "name": "Markdown Document",
+        "description": "Markdown Document",
+        "role": "Editor"
+      },
+      {
+        "ext": "markdown",
+        "name": "Markdown Document",
+        "description": "Markdown Document",
+        "role": "Editor"
+      }
+    ],
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "MarkdownPro"
+    },
+    "portable": {
+      "artifactName": "MarkdownPro-${version}-Portable.${ext}"
+    }
   },
   "keywords": [
     "markdown",
@@ -24,7 +86,8 @@
     "mermaid": "^11.0.0"
   },
   "devDependencies": {
+    "@electron/packager": "^20.0.1",
     "electron": "^42.3.3",
-    "@electron/packager": "^20.0.1"
+    "electron-builder": "^26.18.0"
   }
 }
