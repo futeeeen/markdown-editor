@@ -54,3 +54,15 @@ Electron、Marked、Mermaid、KaTeX 和 Highlight.js。
 ## 授權
 
 `package.json` 標示為 MIT；目前 repository 尚未附上完整授權條款。
+
+## Outline controls
+
+Click the Outline icon to the left of **Markdown Editor**. Each outline item toggles the corresponding section in both the source editor and preview. Use the two buttons to the right of **Outline** to collapse or expand all sections.
+
+The source editor uses locally bundled CodeMirror 5, so hidden text remains in the document and saves/exports include the complete content. Search unfolds matching hidden text. Folding does not mark the file as modified. Undo history and outline state are isolated per open tab.
+
+Run `npm run test:outline` for source-range checks. For DOM integration tests, point `OUTLINE_TEST_JSDOM` at an installed jsdom package and run that command plus `node scripts/test-outline-app.cjs`. These tests do not replace a visual Electron check.
+
+### v1.2.0
+
+Adds Outline-controlled folding in both the Markdown editor and preview, with collapse/expand all controls. Ready-to-use portable folder: `dist/MarkdownPro-1.2.0-win-x64/`; ZIP: `dist/MarkdownPro-1.2.0-win-x64.zip`. Launch `MarkdownPro.exe` from the new folder and keep all companion files together. Existing shortcuts to older builds must be updated to this executable. NSIS installer and single-file portable builds remain available through the build commands above.

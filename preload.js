@@ -32,6 +32,7 @@ function getMarkedAndHljs() {
   }
 
   const renderer = new markedModule.Renderer();
+  renderer.heading = (text, level) => '<h' + level + ' data-outline-heading="true">' + text + '</h' + level + '>';
   renderer.code = function(code, lang, escaped) {
     const cleanLang = lang ? lang.split(/\s+/)[0] : '';
     if (cleanLang === 'mermaid') {
@@ -156,6 +157,11 @@ contextBridge.exposeInMainWorld('api', {
     }
   },
 
+  getOutline: markdownText => {
+    const { marked } = getMarkedAndHljs();
+    return require('./outline-model').sections(markdownText, text => marked.lexer(text));
+  },
+
   // Safe File I/O
   readFile: (filePath) => ipcRenderer.invoke('read-file', filePath),
   writeFile: (filePath, content) => ipcRenderer.invoke('write-file', filePath, content),
@@ -187,6 +193,9 @@ contextBridge.exposeInMainWorld('api', {
   },
   onMenuAction: (channel, callback) => {
     const validChannels = [
+      'menu-undo',
+      'menu-redo',
+      'menu-select-all',
       'menu-new-file',
       'menu-open-file',
       'menu-save-file',

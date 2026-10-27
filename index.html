@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MarkdownPro v1.1.0 - Premium Previewer & Editor</title>
+  <title>MarkdownPro v1.2.0 - Premium Previewer & Editor</title>
   
   <!-- Style System Sheet (Includes Local Offline Fonts) -->
+  <link rel="stylesheet" href="assets/codemirror/codemirror.css">
   <link rel="stylesheet" href="style.css">
   
   <!-- Offline KaTeX for Math Formulas -->
@@ -22,7 +23,7 @@
       <div class="logo-wrapper">
         <i data-lucide="edit-3" class="logo-icon"></i>
         <span class="app-name">Markdown<span class="accent-text">Pro</span></span>
-        <span class="app-version">v1.1.0</span>
+        <span class="app-version">v1.2.0</span>
       </div>
       <div class="divider"></div>
       <div class="file-info-badge">
@@ -41,9 +42,6 @@
     
     <div class="header-right">
       <!-- Quick View Controls -->
-      <button id="toggle-toc-btn" class="header-action-btn" title="Toggle Table of Contents (Ctrl+Shift+L)">
-        <i data-lucide="list-tree"></i>
-      </button>
       <button id="toggle-split-btn" class="header-action-btn active" title="Toggle Split Preview (Ctrl+P)">
         <i data-lucide="columns"></i>
       </button>
@@ -105,6 +103,8 @@
       <div class="sidebar-header">
         <i data-lucide="list-tree"></i>
         <h3>Outline</h3>
+        <button id="outline-collapse-all" class="outline-all-btn" title="Collapse all sections" aria-label="Collapse all sections">&#25910;&#36215;&#20840;&#37096;</button>
+        <button id="outline-expand-all" class="outline-all-btn" title="Expand all sections" aria-label="Expand all sections">&#23637;&#38283;&#20840;&#37096;</button>
         <button id="close-toc-btn" class="close-sidebar-btn"><i data-lucide="x"></i></button>
       </div>
       <div class="sidebar-content">
@@ -121,6 +121,7 @@
       <section id="editor-pane" class="pane editor-pane">
         <div class="pane-header">
           <div class="pane-title">
+            <button id="toggle-toc-btn" class="pane-action-btn" title="Toggle Outline (Ctrl+Shift+L)" aria-label="Toggle Outline" aria-expanded="false" aria-controls="toc-sidebar"><i data-lucide="list-tree"></i></button>
             <i data-lucide="code-2"></i>
             <span>Markdown Editor</span>
           </div>
@@ -261,7 +262,7 @@ console.log('hi');
     </div>
     
     <div class="status-right">
-      <span class="status-item version-badge" title="MarkdownPro Version"><i data-lucide="info"></i> v1.1.0</span>
+      <span class="status-item version-badge" title="MarkdownPro Version"><i data-lucide="info"></i> v1.2.0</span>
       <span class="status-item"><i data-lucide="whole-word"></i> Char: <span id="stat-chars">0</span></span>
       <span class="status-item"><i data-lucide="align-justify"></i> Para: <span id="stat-paragraphs">0</span></span>
       <span class="status-item cursor-indicator"><i data-lucide="navigation"></i> Ln <span id="cursor-line">1</span>, Col <span id="cursor-col">1</span></span>
@@ -356,6 +357,9 @@ console.log('hi');
   <div id="custom-context-menu" class="custom-context-menu hidden"></div>
 
   <!-- Main Renderer Script -->
+  <script src="assets/codemirror/codemirror.js"></script>
+  <script src="source-editor.js"></script>
+  <script src="article-outline.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>

@@ -4,7 +4,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   // --- UI Elements Reference ---
-  const editor = document.getElementById('markdown-editor');
+  const editor = window.createSourceEditor(document.getElementById('markdown-editor'));
   const previewContainer = document.getElementById('preview-container');
   const lineNumbers = document.getElementById('line-numbers');
   
@@ -79,6 +79,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const searchHistoryList = document.getElementById('search-history-list');
 
   // --- App State (Multi-Tab Structure) ---
+  let previewRevision = 0;
+  let outlinePauseUntil = 0;
   let tabs = [];
   let activeTabId = null;
   let replaceHistoryStack = [];
@@ -90,6 +92,14 @@ document.addEventListener('DOMContentLoaded', () => {
   let scrollTimeout = null;
   let isSyncPaused = false;
   let syncPauseTimeout = null;
+
+  const outlineVisibility = new MutationObserver(() => {
+    const open = !tocSidebar.classList.contains('collapsed');
+    toggleTocBtn.setAttribute('aria-expanded', String(open));
+    toggleTocBtn.classList.toggle('active', open);
+    requestAnimationFrame(() => editor.cm.refresh());
+  });
+  outlineVisibility.observe(tocSidebar, { attributes: true, attributeFilter: ['class'] });
 
   // --- Welcome Guide Template ---
   const welcomeMarkdown = `# 🚀 Welcome to MarkdownPro!
@@ -191,6 +201,7 @@ When your writing is complete, you can:
       content: content,
       lastSavedContent: content,
       isDirty: false,
+      outlineState: new Set(),
       scrollTopEditor: 0,
       scrollTopPreview: 0
     };
@@ -229,7 +240,8 @@ When your writing is complete, you can:
     if (!nextTab) return;
     
     // 3. Load tab content to editor & restore scrolls
-    editor.value = nextTab.content;
+    outline.clearMarks();
+    editor.loadTab(nextTab);
     
     // Force preview parsing immediately
     updatePreviewDirect();
@@ -405,6 +417,7 @@ When your writing is complete, you can:
   }
 
   function updatePreviewDirect() {
+    const revision = ++previewRevision;
     const rawText = editor.value;
     const activeTab = tabs.find(t => t.id === activeTabId);
     const filePath = activeTab ? activeTab.filePath : null;
@@ -420,18 +433,21 @@ When your writing is complete, you can:
     updateLineNumbers();
     
     // 4. Live Table of Contents Builder
-    buildTableOfContents();
+    buildTableOfContents(Boolean(window.mermaid && previewContainer.querySelector('.mermaid')));
     
     // 5. Update Tab UI Indicators (dirty status changes)
     renderTabs();
 
-    // 6. Initialize and render Mermaid diagrams
-    if (window.mermaid) {
-      try {
-        window.mermaid.run({ querySelector: '.mermaid' });
-      } catch (err) {
-        console.error('Mermaid render failed:', err);
-      }
+    // Measure diagrams expanded, then apply the current outline state.
+    if (window.mermaid && previewContainer.querySelector('.mermaid')) {
+      const nodes = previewContainer.querySelectorAll('.mermaid');
+      Promise.resolve().then(() => window.mermaid.run({ nodes }))
+        .catch(err => console.error('Mermaid render failed:', err))
+        .finally(() => {
+          if (revision !== previewRevision) return;
+          outline.ready = true;
+          outline.apply();
+        });
     }
 
     if (window.lucide) {
@@ -460,38 +476,8 @@ When your writing is complete, you can:
   }
 
   function updateLineNumbers() {
-    const text = editor.value;
-    const lines = text.split('\n');
-    
-    // Sync style properties from editor to mirror to ensure identical font rendering
-    const computed = window.getComputedStyle(editor);
-    mirror.style.fontFamily = computed.fontFamily;
-    mirror.style.fontSize = computed.fontSize;
-    mirror.style.lineHeight = computed.lineHeight;
-    mirror.style.fontWeight = computed.fontWeight;
-    mirror.style.letterSpacing = computed.letterSpacing;
-    mirror.style.paddingLeft = computed.paddingLeft;
-    mirror.style.paddingRight = computed.paddingRight;
-    mirror.style.boxSizing = computed.boxSizing;
-    mirror.style.width = editor.clientWidth + 'px';
-    
-    // Populate the mirror div with corresponding lines
-    mirror.innerHTML = '';
-    lines.forEach((line) => {
-      const div = document.createElement('div');
-      div.className = 'editor-mirror-line';
-      div.textContent = line || ' '; // Keep empty lines visually open
-      mirror.appendChild(div);
-    });
-    
-    // Measure individual line heights and render line numbers accordingly
-    const mirrorLines = mirror.children;
-    let gutterHtml = '';
-    for (let i = 0; i < lines.length; i++) {
-      const height = mirrorLines[i].offsetHeight;
-      gutterHtml += `<div class="gutter-line-number" style="height: ${height}px; line-height: ${computed.lineHeight || '1.6'};">${i + 1}</div>`;
-    }
-    lineNumbers.innerHTML = gutterHtml;
+    // CodeMirror keeps source line numbers aligned with wrapped and folded text.
+    editor.cm.refresh();
   }
 
   // --- Scroll Syncing Algorithm ---
@@ -538,7 +524,7 @@ When your writing is complete, you can:
       // Sync line numbers gutter
       lineNumbers.parentElement.scrollTop = editor.scrollTop;
 
-      if (isSyncPaused) return;
+      if (isSyncPaused || performance.now() < outlinePauseUntil) return;
       if (activeScrollSource && activeScrollSource !== 'editor') return;
 
       activeScrollSource = 'editor';
@@ -565,7 +551,7 @@ When your writing is complete, you can:
     }
 
     previewScrollRaf = requestAnimationFrame(() => {
-      if (isSyncPaused) return;
+      if (isSyncPaused || performance.now() < outlinePauseUntil) return;
       if (activeScrollSource && activeScrollSource !== 'preview') return;
 
       activeScrollSource = 'preview';
@@ -588,64 +574,19 @@ When your writing is complete, you can:
 
 
   // --- Live Table of Contents Builder (Click Outline to Jump) ---
-  function buildTableOfContents() {
-    tocTree.innerHTML = '';
-    const headings = previewContainer.querySelectorAll('h1, h2, h3, h4');
-    
-    if (headings.length === 0) {
-      tocTree.innerHTML = '<div class="toc-placeholder">No headings found in your document. Use #, ##, ### to create headings.</div>';
-      return;
-    }
-    
-    headings.forEach((heading, index) => {
-      const headingId = `heading-${index}`;
-      heading.id = headingId;
-      
-      const item = document.createElement('div');
-      item.className = `toc-item toc-${heading.tagName.toLowerCase()}`;
-      item.innerText = heading.innerText.replace(/^[#\s]+/, '').trim();
-      
-      item.addEventListener('click', () => {
-        // 1. Temporarily pause scroll syncing to prevent fight snap-back
-        isSyncPaused = true;
-        clearTimeout(syncPauseTimeout);
-        
-        // 2. Scroll Preview directly using absolute container offset
-        const containerRect = previewContainer.getBoundingClientRect();
-        const headingRect = heading.getBoundingClientRect();
-        const absoluteOffset = headingRect.top - containerRect.top + previewContainer.scrollTop;
-        
-        previewContainer.scrollTo({ top: absoluteOffset, behavior: 'smooth' });
-        
-        // 3. Scroll Editor directly to matching heading line
-        const headingText = heading.innerText.trim();
-        const lines = editor.value.split('\n');
-        let targetLine = -1;
-        for (let i = 0; i < lines.length; i++) {
-          const cleanLine = lines[i].replace(/^[#\s]+/, '').trim();
-          if (cleanLine === headingText) {
-            targetLine = i;
-            break;
-          }
-        }
-        
-        if (targetLine !== -1) {
-          const lineHeight = parseFloat(getComputedStyle(editor).lineHeight || 20);
-          editor.scrollTop = targetLine * lineHeight;
-          lineNumbers.parentElement.scrollTop = editor.scrollTop;
-        }
-        
-        // 4. Resume scroll syncing after smooth scroll animation completes
-        syncPauseTimeout = setTimeout(() => {
-          isSyncPaused = false;
-        }, 850);
-      });
-      
-      tocTree.appendChild(item);
-    });
+  const outline = new window.ArticleOutline(editor, previewContainer, tocTree, () => {
+    scrollLimitsDirty = true;
+    outlinePauseUntil = performance.now() + 200;
+  });
+  document.getElementById('outline-collapse-all').addEventListener('click', () => outline.setAll(true));
+  document.getElementById('outline-expand-all').addEventListener('click', () => outline.setAll(false));
+  function buildTableOfContents(diagramsPending = false) {
+    const tab = tabs.find(t => t.id === activeTabId);
+    outline.rebuild(window.api.getOutline(editor.value), tab ? (tab.outlineState ||= new Set()) : new Set(), !diagramsPending);
   }
 
-  // --- Cursor Tracking ---
+  // --- Cursor position in the complete Markdown source ---
+
   function updateCursorPos() {
     const text = editor.value;
     const selectionStart = editor.selectionStart;
@@ -1177,7 +1118,7 @@ When your writing is complete, you can:
         const themeStyles = getActiveThemeStyles();
         
         // Use the pre-rendered HTML from the preview pane (which contains fully rendered Mermaid SVGs)
-        let htmlContent = previewContainer.innerHTML;
+        let htmlContent = window.ArticleOutline.exportHtml(previewContainer);
         
         // Convert absolute local file:// paths back to relative paths for portability
         if (currentTab.filePath) {
@@ -1322,7 +1263,7 @@ When your writing is complete, you can:
         ? currentTab.filePath.substring(0, currentTab.filePath.lastIndexOf('.')) + '.pdf'
         : 'document.pdf';
         
-      const htmlContent = previewContainer.innerHTML;
+      const htmlContent = window.ArticleOutline.exportHtml(previewContainer);
       const themeStyles = getActiveThemeStyles();
       await window.api.exportPdf(htmlContent, suggestedPath, activeTheme, themeStyles);
     } catch (error) {
@@ -1340,7 +1281,7 @@ When your writing is complete, you can:
         ? currentTab.filePath.substring(0, currentTab.filePath.lastIndexOf('.')) + '.png'
         : 'document.png';
         
-      const htmlContent = previewContainer.innerHTML;
+      const htmlContent = window.ArticleOutline.exportHtml(previewContainer);
       const themeStyles = getActiveThemeStyles();
       await window.api.exportPng(htmlContent, suggestedPath, activeTheme, themeStyles);
     } catch (error) {
@@ -1613,7 +1554,7 @@ When your writing is complete, you can:
       
       const linesBefore = editorText.substring(0, index).split('\n').length;
       const lineHeight = parseFloat(getComputedStyle(editor).lineHeight || 20);
-      editor.scrollTop = Math.max(0, (linesBefore - 10) * lineHeight);
+      editor.scrollToLine(Math.max(0, linesBefore - 1));
     }
   }
 
@@ -1829,7 +1770,7 @@ When your writing is complete, you can:
     
     editor.focus();
     editor.setSelectionRange(start, end);
-    document.execCommand('insertText', false, replacement);
+    editor.replaceSelection(replacement);
     editor.setSelectionRange(start, start + replacement.length);
     
     const currentTab = tabs.find(t => t.id === activeTabId);
@@ -1912,24 +1853,24 @@ When your writing is complete, you can:
       
       contextMenuEl.querySelector('#ctx-undo').addEventListener('click', () => {
         editor.focus();
-        document.execCommand('undo');
+        editor.cm.undo();
       });
       contextMenuEl.querySelector('#ctx-redo').addEventListener('click', () => {
         editor.focus();
-        document.execCommand('redo');
+        editor.cm.redo();
       });
       
       if (hasSelection) {
         contextMenuEl.querySelector('#ctx-cut').addEventListener('click', () => {
-          document.execCommand('cut');
+          navigator.clipboard.writeText(editor.cm.getSelection()).then(() => editor.replaceSelection(''));
         });
         contextMenuEl.querySelector('#ctx-copy').addEventListener('click', () => {
-          document.execCommand('copy');
+          navigator.clipboard.writeText(editor.cm.getSelection());
         });
       }
       contextMenuEl.querySelector('#ctx-paste').addEventListener('click', () => {
         editor.focus();
-        document.execCommand('paste');
+        navigator.clipboard.readText().then(text => editor.replaceSelection(text));
       });
       contextMenuEl.querySelector('#ctx-selectall').addEventListener('click', () => {
         editor.select();
@@ -2193,7 +2134,8 @@ When your writing is complete, you can:
     }
   });
 
-  editor.addEventListener('input', () => {
+  editor.addEventListener('input', (event) => {
+    if (event.target !== editor) return;
     updatePreview();
   });
 
@@ -2209,6 +2151,9 @@ When your writing is complete, you can:
   exportPngBtn.addEventListener('click', handleExportPng);
 
   // --- Menu Action IPC Subscriptions ---
+  window.api.onMenuAction('menu-undo', () => editor.cm.hasFocus() ? editor.cm.undo() : document.execCommand('undo'));
+  window.api.onMenuAction('menu-redo', () => editor.cm.hasFocus() ? editor.cm.redo() : document.execCommand('redo'));
+  window.api.onMenuAction('menu-select-all', () => editor.cm.hasFocus() ? editor.select() : document.execCommand('selectAll'));
   window.api.onMenuAction('menu-new-file', () => {
     createNewTab(null, 'untitled.md', welcomeMarkdown, true);
   });

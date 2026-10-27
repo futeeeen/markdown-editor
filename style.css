@@ -1918,3 +1918,27 @@ textarea, input {
 .context-menu-item.has-submenu.locked .context-menu-submenu {
   display: flex !important;
 }
+/* Outline-driven folding and the source editor */
+#toc-sidebar { width: 300px; }
+#toc-sidebar.collapsed { width: 0; }
+#toc-sidebar .sidebar-header { gap: 5px; padding: 0 10px; }
+#toc-sidebar .sidebar-header h3 { flex: 1; }
+.outline-all-btn { padding: 4px 5px; border: 1px solid var(--border-glass); border-radius: 4px; color: var(--text-main); background: transparent; font-size: 11px; white-space: nowrap; cursor: pointer; }
+.outline-all-btn:hover { background: var(--bg-selection); }
+.outline-all-btn:disabled { opacity: .4; cursor: default; }
+.outline-item { display: flex; align-items: baseline; gap: 5px; width: 100%; border: 0; padding: 7px 12px; color: var(--text-main); background: transparent; text-align: left; font: inherit; font-size: 12px; cursor: pointer; }
+.outline-item:hover, .outline-item:focus-visible { background: var(--bg-selection); }
+.outline-item:focus-visible { outline: 2px solid var(--accent-color); outline-offset: -2px; }
+.outline-item span:last-child { overflow-wrap: anywhere; }
+.outline-arrow { flex: 0 0 12px; color: var(--text-muted); }
+.markdown-body .outline-content-hidden { display: none !important; }
+.legacy-gutter { display: none; }
+#source-editor.CodeMirror { flex: 1; min-width: 0; height: 100%; background: transparent; color: var(--text-main); font-family: 'Fira Code', 'Courier New', monospace; font-size: .9rem; line-height: 1.6; }
+#source-editor .CodeMirror-lines { padding: 16px 0; }
+#source-editor pre.CodeMirror-line, #source-editor pre.CodeMirror-line-like { padding: 0 20px; }
+#source-editor .CodeMirror-gutters { background: var(--bg-gutter); border-right: 1px solid var(--border-glass); }
+#source-editor .CodeMirror-linenumber { color: var(--text-gutter); padding: 0 12px 0 6px; }
+#source-editor .CodeMirror-cursor { border-left-color: var(--text-main); }
+#source-editor .CodeMirror-selected { background: var(--bg-selection); }
+.source-fold-placeholder { color: var(--accent-color); background: var(--md-code-bg); border: 1px solid var(--border-glass); border-radius: 4px; padding: 0 5px; margin-left: 6px; }
+@media print { .markdown-body .outline-content-hidden { display: revert !important; } }
