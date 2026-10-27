@@ -228,7 +228,7 @@ When your writing is complete, you can:
       const activeTab = tabs.find(t => t.id === activeTabId);
       if (activeTab) {
         activeTab.content = editor.value;
-        activeTab.scrollTopEditor = editor.scrollTop;
+        activeTab.scrollTopEditor = editor.sourceScrollTop;
         activeTab.scrollTopPreview = previewContainer.scrollTop;
         activeTab.isDirty = (activeTab.content !== activeTab.lastSavedContent);
       }
@@ -249,9 +249,9 @@ When your writing is complete, you can:
     // Restore Scroll Positions after a layout sync
     setTimeout(() => {
       isSyncPaused = true;
-      editor.scrollTop = nextTab.scrollTopEditor;
+      editor.sourceScrollTop = nextTab.scrollTopEditor;
       previewContainer.scrollTop = nextTab.scrollTopPreview;
-      lineNumbers.parentElement.scrollTop = editor.scrollTop;
+      lineNumbers.parentElement.scrollTop = editor.sourceScrollTop;
       
       setTimeout(() => {
         isSyncPaused = false;
@@ -493,7 +493,7 @@ When your writing is complete, you can:
   let maxPreviewScroll = 0;
 
   function updateScrollLimits() {
-    maxEditorScroll = editor.scrollHeight - editor.clientHeight;
+    maxEditorScroll = editor.sourceScrollHeight - editor.sourceClientHeight;
     maxPreviewScroll = previewContainer.scrollHeight - previewContainer.clientHeight;
     scrollLimitsDirty = false;
   }
@@ -515,14 +515,14 @@ When your writing is complete, you can:
   let editorScrollRaf = null;
   let previewScrollRaf = null;
 
-  editor.addEventListener('scroll', () => {
+  editor.addEventListener('source-scroll', () => {
     if (editorScrollRaf) {
       cancelAnimationFrame(editorScrollRaf);
     }
 
     editorScrollRaf = requestAnimationFrame(() => {
       // Sync line numbers gutter
-      lineNumbers.parentElement.scrollTop = editor.scrollTop;
+      lineNumbers.parentElement.scrollTop = editor.sourceScrollTop;
 
       if (isSyncPaused || performance.now() < outlinePauseUntil) return;
       if (activeScrollSource && activeScrollSource !== 'editor') return;
@@ -535,7 +535,7 @@ When your writing is complete, you can:
       }
 
       if (maxEditorScroll > 0) {
-        const percentage = editor.scrollTop / maxEditorScroll;
+        const percentage = editor.sourceScrollTop / maxEditorScroll;
         previewContainer.scrollTop = percentage * maxPreviewScroll;
       }
 
@@ -563,7 +563,7 @@ When your writing is complete, you can:
 
       if (maxPreviewScroll > 0) {
         const percentage = previewContainer.scrollTop / maxPreviewScroll;
-        editor.scrollTop = percentage * maxEditorScroll;
+        editor.sourceScrollTop = percentage * maxEditorScroll;
       }
 
       scrollTimeout = setTimeout(() => {
@@ -1879,7 +1879,7 @@ When your writing is complete, you can:
         editor.scrollTo({ top: 0, behavior: 'smooth' });
       });
       contextMenuEl.querySelector('#ctx-scrollbottom').addEventListener('click', () => {
-        editor.scrollTo({ top: editor.scrollHeight, behavior: 'smooth' });
+        editor.scrollTo({ top: editor.sourceScrollHeight, behavior: 'smooth' });
       });
       
       contextMenuEl.querySelectorAll('.context-menu-submenu .context-menu-item').forEach(subItem => {

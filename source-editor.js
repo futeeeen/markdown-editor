@@ -30,9 +30,9 @@ window.createSourceEditor = function (textarea) {
     },
     selectionStart: { get: start, set: index => editor.setSelectionRange(index, Math.max(index, end())) },
     selectionEnd: { get: end, set: index => editor.setSelectionRange(Math.min(start(), index), index) },
-    scrollTop: { get: () => cm.getScrollInfo().top, set: top => cm.scrollTo(null, top) },
-    scrollHeight: { get: () => cm.getScrollInfo().height },
-    clientHeight: { get: () => cm.getScrollInfo().clientHeight }
+    sourceScrollTop: { get: () => cm.getScrollInfo().top, set: top => cm.scrollTo(null, top) },
+    sourceScrollHeight: { get: () => cm.getScrollInfo().height },
+    sourceClientHeight: { get: () => cm.getScrollInfo().clientHeight }
   });
   editor.cm = cm;
   editor.focus = () => cm.focus();
@@ -54,7 +54,8 @@ window.createSourceEditor = function (textarea) {
     cm.refresh();
   };
   cm.on('changes', () => { if (!silent) editor.dispatchEvent(new Event('input')); });
-  cm.on('scroll', () => editor.dispatchEvent(new Event('scroll')));
+  // A native wrapper scroll resets its position inside CodeMirror. Use a distinct event.
+  cm.on('scroll', () => editor.dispatchEvent(new Event('source-scroll')));
   cm.on('cursorActivity', () => editor.dispatchEvent(new Event('keyup')));
   // Run the application's custom shortcuts before CodeMirror handles the key.
   const add = editor.addEventListener.bind(editor);
